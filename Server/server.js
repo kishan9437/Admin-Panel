@@ -3,6 +3,7 @@ const express=require('express');
 const app = express();
 const connectDB= require('./config/db');
 const authRouter= require('./routes/auth/auth-routes');
+const websiteRouter = require('./routes/admin/Website-routes')
 const cookieParser=require('cookie-parser');
 const cors=require('cors');
 
@@ -17,6 +18,8 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use('/api/auth', authRouter);
+
+app.use('/api',websiteRouter)
 
 const PORT=5000;
 connectDB().then(()=>{

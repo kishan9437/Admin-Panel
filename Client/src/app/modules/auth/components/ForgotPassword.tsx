@@ -1,12 +1,14 @@
-import {useState} from 'react'
+import { useState } from 'react'
 import * as Yup from 'yup'
 import clsx from 'clsx'
-import {Link} from 'react-router-dom'
-import {useFormik} from 'formik'
-import {requestPassword} from '../core/_requests'
+import { Link, useNavigate } from 'react-router-dom'
+import { useFormik } from 'formik'
+import { requestPassword } from '../core/_requests'
+import { PasswordResetResponse } from '../core/_models'; // Import the new interface
+
 
 const initialValues = {
-  email: 'admin@demo.com',
+  email: '',
 }
 
 const forgotPasswordSchema = Yup.object().shape({
@@ -20,17 +22,28 @@ const forgotPasswordSchema = Yup.object().shape({
 export function ForgotPassword() {
   const [loading, setLoading] = useState(false)
   const [hasErrors, setHasErrors] = useState<boolean | undefined>(undefined)
+  const navigate = useNavigate()
   const formik = useFormik({
     initialValues,
     validationSchema: forgotPasswordSchema,
-    onSubmit: (values, {setStatus, setSubmitting}) => {
+    onSubmit: (values, { setStatus, setSubmitting }) => {
       setLoading(true)
       setHasErrors(undefined)
       setTimeout(() => {
         requestPassword(values.email)
-          .then(() => {
+          .then((response: {data:PasswordResetResponse}) => {
             setHasErrors(false)
             setLoading(false)
+            console.log(response)
+
+            const {success, resetPasswordToken, message}= response.data;
+            if (success) {
+              console.log("Token:", resetPasswordToken);
+          
+              navigate(`/auth/reset-password/${resetPasswordToken}`);
+            } else {
+              console.error("Error:", response.data.message);
+            }
           })
           .catch(() => {
             setHasErrors(true)
@@ -87,7 +100,7 @@ export function ForgotPassword() {
           {...formik.getFieldProps('email')}
           className={clsx(
             'form-control bg-transparent',
-            {'is-invalid': formik.touched.email && formik.errors.email},
+            { 'is-invalid': formik.touched.email && formik.errors.email },
             {
               'is-valid': formik.touched.email && !formik.errors.email,
             }
@@ -112,6 +125,10 @@ export function ForgotPassword() {
               Please wait...
               <span className='spinner-border spinner-border-sm align-middle ms-2'></span>
             </span>
+            //   <Link to='/auth/forgot-password' className='link-primary'>
+            //   Forgot Password ?
+            // </Link>
+
           )}
         </button>
         <Link to='/auth/login'>

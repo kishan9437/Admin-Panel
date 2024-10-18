@@ -10,6 +10,11 @@ export interface UserAddressModel {
   postCode: string
 }
 
+export interface PasswordResetResponse {
+  success: boolean;
+  resetPasswordToken?: string;
+  message?: string;
+}
 export interface UserCommunicationModel {
   email: boolean
   sms: boolean

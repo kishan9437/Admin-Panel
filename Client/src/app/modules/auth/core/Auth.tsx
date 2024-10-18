@@ -57,6 +57,7 @@ const AuthInit: FC<WithChildren> = ({children}) => {
   const [showSplashScreen, setShowSplashScreen] = useState(true)
 
   // We should request user by authToken (IN OUR EXAMPLE IT'S API_TOKEN) before rendering the application
+  // console.log(auth)
   useEffect(() => {
     const requestUser = async (apiToken: string) => {
       try {
@@ -65,6 +66,7 @@ const AuthInit: FC<WithChildren> = ({children}) => {
           if (data) {
             setCurrentUser(data)
           }
+          // console.log(data)
         }
       } catch (error) {
         console.error(error)
@@ -77,12 +79,15 @@ const AuthInit: FC<WithChildren> = ({children}) => {
     }
 
     if (auth && auth.api_token) {
+      // console.log(`Auth token: ${auth.api_token}`)
       requestUser(auth.api_token)
+      // console.log(auth.api_token)
     } else {
       logout()
       setShowSplashScreen(false)
     }
     // eslint-disable-next-line
+    // console.log(`Auth token: ${auth}`)
   }, [])
 
   return showSplashScreen ? <LayoutSplashScreen /> : <>{children}</>
