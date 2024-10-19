@@ -8,7 +8,7 @@ const addWebsite = async (req,res) => {
         res.status(200).json({
              success: true,
              message: "Website added successfully",
-             data: savedWebsite
+             items: savedWebsite
         })
     } catch (error) {
         console.error(error);
@@ -21,7 +21,7 @@ const getAllWebsites = async (req,res) => {
         const websites = await Website.find({});
         res.status(200).json({
             success: true,
-            data: websites
+            items: websites
         })
     } catch (error) {
         console.error(error);

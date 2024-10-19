@@ -73,7 +73,7 @@ export function Login() {
           <div className='alert-text font-weight-bold'>{formik.status}</div>
         </div>
       ) : (
-        <div className='mb-10 p-8 rounded'>
+        <div className='rounded'>
           <div className='text-info'>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function Login() {
         />
         {formik.touched.email && formik.errors.email && (
           <div className='fv-plugins-message-container'>
-            <span role='alert'>{formik.errors.email}</span>
+            <span role='alert' style={{color:'#f8285a'}}>{formik.errors.email}</span>
           </div>
         )}
       </div>
