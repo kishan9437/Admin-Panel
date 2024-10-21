@@ -18,10 +18,23 @@ const addWebsite = async (req,res) => {
 
 const getAllWebsites = async (req,res) => {
     try {
-        const websites = await Website.find({});
+        const page = parseInt(req.params.page) || 1;
+        const limit = parseInt(req.params.limit) || 5;
+        const skip = (page - 1) * limit;
+        const totalWebsite = await Website.countDocuments()
+
+        const sortOrder = req.query.order === 'desc' ? -1 : 1;
+        const users = await Website.find({})
+            .sort({name: sortOrder})
+            .skip(skip)
+            .limit(limit)
+
+        const totalPages = Math.ceil(totalWebsite / limit);
         res.status(200).json({
-            success: true,
-            items: websites
+            users,
+            currentPage: page,
+            totalPages,
+            totalWebsite
         })
     } catch (error) {
         console.error(error);

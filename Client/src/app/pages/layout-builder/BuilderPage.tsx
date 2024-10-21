@@ -6,6 +6,7 @@ import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEdit, faTrash, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../modules/auth'
+import { number } from 'yup'
 
 interface Item {
   id: number;
@@ -14,24 +15,35 @@ interface Item {
 }
 
 const BuilderPage: React.FC = () => {
-  const [data, setData] = useState<Item[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(0);
-  const [itemsPerPage] = useState(5);
+  const [users, setUsers] = useState<Item[]>([]);
+  const [search, setSearch] = useState('');
+  const [filterUsers, setFilterUsers] = useState<Item[]>([]);
+  // const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 5;
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   const { auth } = useAuth();
 
-  const getAllWebsites = async () => {
+  const getAllWebsites = async (order: string = "asc", page: number = 1) => {
     try {
       if (auth && auth.api_token) {
-        const response = await fetch('http://localhost:5000/api/websites', {
+        const response = await fetch(`http://localhost:5000/api/websites?order=${order}&page=${page}&limit=${itemsPerPage}`, {
           headers: {
             Authorization: `Bearer ${auth.api_token}`,
           },
         });
         const data = await response.json();
-        setData(data.items);
-        // console.log(data)
+        console.log(data.users)
+        console.log("current data item", data)
+        setUsers(data.users);
+        setFilterUsers(data.users);
+        console.log("filter user data", filterUsers)
+        setCurrentPage(data.currentPage);
+        setTotalPages(data.totalPages)
+
+        // setCurrentPage(data.currentPage)
       } else {
         console.error('No valid auth token available');
       }
@@ -42,42 +54,50 @@ const BuilderPage: React.FC = () => {
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.trim().toLowerCase()
-    setSearchTerm(value);
-    setCurrentPage(0);
-    // searchTerm=value.split(' ');
+    setSearch(value);
+    setCurrentPage(1);
+
+    let filtered = users;
+
+    if (value === "") {
+      setFilterUsers(filtered)
+    }
+    else {
+      const searchTerm = value.split(" ");
+      filtered = filtered.filter((user) => {
+        return searchTerm.some((term) =>
+          user.name.toLowerCase().includes(term) ||
+          user.url.toLowerCase().includes(term)
+        )
+      })
+      setFilterUsers(filtered)
+    }
   };
 
   const handleSort = () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     setSortOrder(newOrder);
+
+    // Sorting only on filtered data
+    const sortedUsers = [...filterUsers].sort((a, b) => {
+      if (sortOrder === 'asc') {
+        return a.name.localeCompare(b.name);
+      } else {
+        return b.name.localeCompare(a.name);
+      }
+    })
+    setFilterUsers(sortedUsers)
   }
-  
-  const filteredData = data.filter((item) => {
-    const nameWords = item.name.toLowerCase().split(' ');
-    const urlWords = item.url.toLowerCase().split(' ');
-    const searchWords = searchTerm.toLowerCase().split(' ');
 
-    return searchWords.every((word) =>
-      nameWords.some(nameWord => nameWord.includes(word)) ||
-      urlWords.some(urlWord => urlWord.includes(word))
-    );
-  });
-
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (sortOrder === 'asc') {
-      return a.name.localeCompare(b.name);
-    } else {
-      return b.name.localeCompare(a.name);
-    }
-  })
-
-  const pageCount = Math.ceil(sortedData.length / itemsPerPage);
   const handlePageClick = (event: { selected: number }) => {
-    setCurrentPage(event.selected);
-    // setCurrentPage(sortedData)
+    setFilterUsers(users)
+    const newPage = event.selected + 1;
+    setCurrentPage(newPage);
   };
 
-  const alldata = sortedData.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filterUsers.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleEditItem = (item: Item) => {
     console.log('Editing', item);
@@ -88,8 +108,9 @@ const BuilderPage: React.FC = () => {
   }
 
   useEffect(() => {
-    getAllWebsites()
-  }, [])
+    console.log("Fetching data for page:", currentPage,"current items:", currentItems);
+    getAllWebsites(sortOrder, currentPage);
+  }, [currentPage,sortOrder,search]);
   return (
     <>
       {/* <Toolbar /> */}
@@ -111,7 +132,7 @@ const BuilderPage: React.FC = () => {
             <Form.Control
               type="text"
               placeholder="Search"
-              value={searchTerm}
+              value={search}
               onChange={handleSearch}
               className="mb-3"
             />
@@ -127,10 +148,10 @@ const BuilderPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {alldata.length > 0 ? (
-                alldata.map((item, index) => (
+              {currentItems.length > 0 ? (
+                currentItems.map((item, index) => (
                   <tr key={index}>
-                    <td>{index + 1 + currentPage * itemsPerPage}</td>
+                    <td>{index + 1}</td>
                     <td>{item.name}</td>
                     {/* <td>{item.url}</td> */}
                     <td><a href={item.url} target='_blank'>{item.url}</a></td>
@@ -153,12 +174,15 @@ const BuilderPage: React.FC = () => {
             </tbody>
           </Table>
 
+          <div className='mt-5'>
+            <h5>current page : {currentPage}</h5>
+          </div>
           <Pagination
             // className=''
             previousLabel={"Previous"}
             nextLabel={"Next"}
             breakLabel={"..."}
-            pageCount={pageCount}
+            pageCount={totalPages}
             marginPagesDisplayed={2}
             pageRangeDisplayed={3}
             onPageChange={handlePageClick}
