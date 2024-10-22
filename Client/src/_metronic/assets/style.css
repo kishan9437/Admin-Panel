@@ -36,16 +36,6 @@
     justify-content: right !important;
 }
 
-.page-link {
-    color: #000;
-    cursor: pointer;
-}
-
-.active .page-link {
-    background-color: #000;
-    color: white;
-}
-
 .table th {
     background-color: #a8a7a7 ;
 }

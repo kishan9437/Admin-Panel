@@ -1,49 +1,42 @@
-import React, { useState, useEffect, HtmlHTMLAttributes } from 'react'
+import React, { useState, useEffect } from 'react'
 import Table from 'react-bootstrap/Table'
 import Form from 'react-bootstrap/Form'
 import Pagination from 'react-paginate'
 import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEdit, faTrash, faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons'
+import { faEdit, faTrash, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../modules/auth'
-import { number } from 'yup'
+import { Link } from 'react-router-dom'
 
 interface Item {
-  id: number;
+  _id: string;
   name: string;
   url: string;
 }
 
 const BuilderPage: React.FC = () => {
-  const [users, setUsers] = useState<Item[]>([]);
+  const [website, setWebsite] = useState<Item[]>([]);
   const [search, setSearch] = useState('');
-  const [filterUsers, setFilterUsers] = useState<Item[]>([]);
-  // const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5;
+  const [filterWebsite, setFilterWebsite] = useState<Item[]>([]);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-
+  const [totalPages, setTotalPages] = useState(0);  
+  const itemsPerPage = 5; 
   const { auth } = useAuth();
 
-  const getAllWebsites = async (order: string = "asc", page: number = 1) => {
+  const getAllWebsites = async (page: number = 1, order = "asc") => {
     try {
       if (auth && auth.api_token) {
-        const response = await fetch(`http://localhost:5000/api/websites?order=${order}&page=${page}&limit=${itemsPerPage}`, {
+        const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order${order}`, {
           headers: {
             Authorization: `Bearer ${auth.api_token}`,
           },
         });
         const data = await response.json();
-        console.log(data.users)
-        console.log("current data item", data)
-        setUsers(data.users);
-        setFilterUsers(data.users);
-        console.log("filter user data", filterUsers)
-        setCurrentPage(data.currentPage);
-        setTotalPages(data.totalPages)
-
-        // setCurrentPage(data.currentPage)
+        setWebsite(data.websites);
+        setFilterWebsite(data.websites);
+        setTotalPages(data.totalPages);
+        // console.log(data)
       } else {
         console.error('No valid auth token available');
       }
@@ -52,25 +45,29 @@ const BuilderPage: React.FC = () => {
     }
   }
 
+  // Handle page click for pagination
+  const handlePageClick = (selectedPage: { selected: number }) => {
+    const selectedPageNumber = selectedPage.selected + 1;  // Paginate starts at 0
+    setCurrentPage(selectedPageNumber);
+    getAllWebsites(selectedPageNumber);  // Fetch data for new page
+  };
+
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value.trim().toLowerCase()
     setSearch(value);
-    setCurrentPage(1);
-
-    let filtered = users;
 
     if (value === "") {
-      setFilterUsers(filtered)
+      setFilterWebsite(website);
     }
     else {
-      const searchTerm = value.split(" ");
-      filtered = filtered.filter((user) => {
+      const searchTerm = value.split(' ');
+      const filtered = website.filter((user) => {
         return searchTerm.some((term) =>
           user.name.toLowerCase().includes(term) ||
           user.url.toLowerCase().includes(term)
         )
-      })
-      setFilterUsers(filtered)
+      });
+      setFilterWebsite(filtered)
     }
   };
 
@@ -79,38 +76,51 @@ const BuilderPage: React.FC = () => {
     setSortOrder(newOrder);
 
     // Sorting only on filtered data
-    const sortedUsers = [...filterUsers].sort((a, b) => {
+    const sortedUsers = [...website].sort((a, b) => {
       if (sortOrder === 'asc') {
         return a.name.localeCompare(b.name);
       } else {
         return b.name.localeCompare(a.name);
       }
     })
-    setFilterUsers(sortedUsers)
+    setFilterWebsite(sortedUsers)
   }
-
-  const handlePageClick = (event: { selected: number }) => {
-    setFilterUsers(users)
-    const newPage = event.selected + 1;
-    setCurrentPage(newPage);
-  };
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filterUsers.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleEditItem = (item: Item) => {
     console.log('Editing', item);
   }
 
-  const handleDeleteItem = (item: Item) => {
-    console.log('Deleting', item);
+  const handleDeleteItem = async (id: string) => {
+    try {
+      if (auth && auth.api_token) {
+        const response = await fetch(`http://localhost:5000/api/website/delete/${id}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${auth.api_token}`
+          }
+        })
+        await response.json()
+
+        if (response.ok) {
+          // alert(response.message)
+          alert('data deleted successfully')
+          getAllWebsites();
+        }
+      }
+      else {
+        console.error('No valid auth token available');
+        return;
+      }
+
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   useEffect(() => {
-    console.log("Fetching data for page:", currentPage,"current items:", currentItems);
-    getAllWebsites(sortOrder, currentPage);
-  }, [currentPage,sortOrder,search]);
+    getAllWebsites();
+  }, []);
+
   return (
     <>
       {/* <Toolbar /> */}
@@ -121,7 +131,7 @@ const BuilderPage: React.FC = () => {
             <h1 className="d-flex text-white fw-bold my-1 fs-3">Websites</h1>
           </div>
           <div className="d-flex align-items-center py-1">
-            <a className="btn bg-body btn-active-color-primary" id="kt_toolbar_primary_button" data-bs-theme="light">New</a>
+            <Link to='/builder/add-websites' className="btn bg-body btn-active-color-primary" id="kt_toolbar_primary_button" data-bs-theme="light">New</Link>
           </div>
         </div>
       </div>
@@ -148,10 +158,10 @@ const BuilderPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {currentItems.length > 0 ? (
-                currentItems.map((item, index) => (
+              {filterWebsite.length > 0 ? (
+                filterWebsite.map((item, index) => (
                   <tr key={index}>
-                    <td>{index + 1}</td>
+                    <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
                     <td>{item.name}</td>
                     {/* <td>{item.url}</td> */}
                     <td><a href={item.url} target='_blank'>{item.url}</a></td>
@@ -159,7 +169,7 @@ const BuilderPage: React.FC = () => {
                       <button onClick={() => handleEditItem(item)} className='actionIcons editBackground'>
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
-                      <button onClick={() => handleDeleteItem(item)} className='actionIcons deleteBackground'>
+                      <button onClick={() => handleDeleteItem(item._id)} className='actionIcons deleteBackground'>
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </td>
@@ -173,29 +183,25 @@ const BuilderPage: React.FC = () => {
 
             </tbody>
           </Table>
-
-          <div className='mt-5'>
-            <h5>current page : {currentPage}</h5>
-          </div>
+          {/* Pagination */}
           <Pagination
-            // className=''
-            previousLabel={"Previous"}
-            nextLabel={"Next"}
-            breakLabel={"..."}
-            pageCount={totalPages}
+            previousLabel={'Previous'}
+            nextLabel={'Next'}
+            breakLabel={'...'}
+            pageCount={totalPages}  // Total pages from API
             marginPagesDisplayed={2}
             pageRangeDisplayed={3}
             onPageChange={handlePageClick}
-            containerClassName={"pagination justify-content-right "}
-            pageClassName={"page-item"}
-            pageLinkClassName={"page-link"}
-            previousClassName={"page-item"}
-            previousLinkClassName={"page-link"}
-            nextClassName={"page-item"}
-            nextLinkClassName={"page-link"}
-            breakClassName={"page-item"}
-            breakLinkClassName={"page-link"}
-            activeClassName={"active"}
+            containerClassName={'pagination justify-content-right'}
+            pageClassName={'page-item'}
+            pageLinkClassName={'page-link'}
+            previousClassName={'page-item'}
+            previousLinkClassName={'page-link'}
+            nextClassName={'page-item'}
+            nextLinkClassName={'page-link'}
+            breakClassName={'page-item'}
+            breakLinkClassName={'page-link'}
+            activeClassName={'active'}
           />
         </div>
       </Content>

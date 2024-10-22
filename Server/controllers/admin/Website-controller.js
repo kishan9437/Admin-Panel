@@ -18,23 +18,25 @@ const addWebsite = async (req,res) => {
 
 const getAllWebsites = async (req,res) => {
     try {
-        const page = parseInt(req.params.page) || 1;
-        const limit = parseInt(req.params.limit) || 5;
-        const skip = (page - 1) * limit;
-        const totalWebsite = await Website.countDocuments()
-
         const sortOrder = req.query.order === 'desc' ? -1 : 1;
-        const users = await Website.find({})
+        
+        const page = parseInt(req.query.page) || 1;  
+        const limit = parseInt(req.query.limit) || 5;  
+        const skip = (page - 1) * limit;
+        
+        const totalWebsites = await Website.countDocuments();  // Total count of documents
+
+        const websites = await Website.find({})
             .sort({name: sortOrder})
             .skip(skip)
-            .limit(limit)
+            .limit(limit);
 
-        const totalPages = Math.ceil(totalWebsite / limit);
         res.status(200).json({
-            users,
-            currentPage: page,
-            totalPages,
-            totalWebsite
+            success: true,
+            websites,
+            totalWebsites,  
+            page,  
+            totalPages: Math.ceil(totalWebsites / limit),
         })
     } catch (error) {
         console.error(error);
@@ -71,7 +73,7 @@ const deleteWebsite = async (req,res) => {
         }
         res.status(200).json({
             success: true,
-            message: "Website deleted successfully"
+            message: "data deleted successfully"
         })
     } catch (error) {
         res.status(500).json({error: error.message});

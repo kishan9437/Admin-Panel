@@ -39,7 +39,7 @@ const registerUser = async (req, res) => {
             },
             process.env.JWT_SECRET_KEY,
             {
-                expiresIn: '1h'  // token will expire in 1 hour
+                expiresIn: '2h'  // token will expire in 1 hour
             }
         );
 
@@ -92,7 +92,7 @@ const loginUser = async (req, res) => {
             },
             process.env.JWT_SECRET_KEY,
             {
-                expiresIn: '1h'  // token will expire in 1 hour
+                expiresIn: '2h'  // token will expire in 1 hour
             }
         );
 
