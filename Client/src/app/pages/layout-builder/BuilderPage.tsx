@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEdit, faTrash, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../modules/auth'
 import { Link } from 'react-router-dom'
+import Swal from 'sweetalert2'
 
 interface Item {
   _id: string;
@@ -18,16 +19,16 @@ const BuilderPage: React.FC = () => {
   const [website, setWebsite] = useState<Item[]>([]);
   const [search, setSearch] = useState('');
   const [filterWebsite, setFilterWebsite] = useState<Item[]>([]);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);  
-  const itemsPerPage = 5; 
+  const [totalPages, setTotalPages] = useState(0);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const itemsPerPage = 5;
   const { auth } = useAuth();
 
-  const getAllWebsites = async (page: number = 1, order = "asc") => {
+  const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc') => {
     try {
       if (auth && auth.api_token) {
-        const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order${order}`, {
+        const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order=${order}`, {
           headers: {
             Authorization: `Bearer ${auth.api_token}`,
           },
@@ -74,20 +75,7 @@ const BuilderPage: React.FC = () => {
   const handleSort = () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     setSortOrder(newOrder);
-
-    // Sorting only on filtered data
-    const sortedUsers = [...website].sort((a, b) => {
-      if (sortOrder === 'asc') {
-        return a.name.localeCompare(b.name);
-      } else {
-        return b.name.localeCompare(a.name);
-      }
-    })
-    setFilterWebsite(sortedUsers)
-  }
-
-  const handleEditItem = (item: Item) => {
-    console.log('Editing', item);
+    getAllWebsites(currentPage, newOrder);
   }
 
   const handleDeleteItem = async (id: string) => {
@@ -103,8 +91,24 @@ const BuilderPage: React.FC = () => {
 
         if (response.ok) {
           // alert(response.message)
-          alert('data deleted successfully')
-          getAllWebsites();
+          Swal.fire({
+            position: 'center',
+            icon: 'success',
+            title: 'Success',
+            text: 'Data Deleting successfully',
+            confirmButtonText: "OK"
+          }).then(() => {
+            getAllWebsites();
+          })
+        }
+        else{
+          Swal.fire({
+            position: 'center',
+            title: 'Error!',
+            text: 'Error deleting data. Please try again',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          });
         }
       }
       else {
@@ -118,7 +122,7 @@ const BuilderPage: React.FC = () => {
   }
 
   useEffect(() => {
-    getAllWebsites();
+    getAllWebsites(currentPage, sortOrder);
   }, []);
 
   return (
@@ -151,7 +155,11 @@ const BuilderPage: React.FC = () => {
             <thead>
               <tr>
                 <th>No</th>
-                <th onClick={handleSort} className='cursor-pointer'>Name <span className='ms-1 mt-3'>{sortOrder === 'asc' ? "↑" : "↓"}</span>
+                <th onClick={handleSort} className='cursor-pointer'>
+                  Name
+                  <span className='ms-1 mt-3'>
+                    {sortOrder === 'asc' ? "↑" : "↓"}
+                  </span>
                 </th>
                 <th>Url</th>
                 <th>Action</th>
@@ -159,16 +167,18 @@ const BuilderPage: React.FC = () => {
             </thead>
             <tbody>
               {filterWebsite.length > 0 ? (
-                filterWebsite.map((item, index) => (
+                filterWebsite.map((item,index) => (
                   <tr key={index}>
                     <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
                     <td>{item.name}</td>
                     {/* <td>{item.url}</td> */}
                     <td><a href={item.url} target='_blank'>{item.url}</a></td>
                     <td>
-                      <button onClick={() => handleEditItem(item)} className='actionIcons editBackground'>
-                        <FontAwesomeIcon icon={faEdit} />
-                      </button>
+                      <Link to={`/builder/update-website/${item._id}`}>
+                        <button className='actionIcons editBackground'>
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                      </Link>
                       <button onClick={() => handleDeleteItem(item._id)} className='actionIcons deleteBackground'>
                         <FontAwesomeIcon icon={faTrash} />
                       </button>

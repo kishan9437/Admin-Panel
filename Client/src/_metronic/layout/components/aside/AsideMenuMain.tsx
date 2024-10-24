@@ -22,7 +22,7 @@ export function AsideMenuMain() {
           <span className='menu-section text-muted text-uppercase fs-8 ls-1'>Crafted</span>
         </div>
       </div>
-      <AsideMenuItemWithSub
+      {/* <AsideMenuItemWithSub
         to='/crafted/pages'
         title='Pages'
         fontIcon='bi-archive'
@@ -38,7 +38,7 @@ export function AsideMenuMain() {
             title='Connections'
             hasBullet={true}
           />
-        </AsideMenuItemWithSub>
+        </AsideMenuItemWithSub> */}
 
         <AsideMenuItemWithSub to='/crafted/pages/wizards' title='Wizards' hasBullet={true}>
           <AsideMenuItem
@@ -48,7 +48,7 @@ export function AsideMenuMain() {
           />
           <AsideMenuItem to='/crafted/pages/wizards/vertical' title='Vertical' hasBullet={true} />
         </AsideMenuItemWithSub>
-      </AsideMenuItemWithSub>
+      {/* </AsideMenuItemWithSub> */}
       <AsideMenuItemWithSub
         to='/crafted/accounts'
         title='Accounts'
