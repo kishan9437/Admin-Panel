@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const websiteurlSchema = new Schema({
-    website_id: {type: Schema.Types.ObjectId, ref: 'websites', required: true},
+    website_id: {type: Schema.Types.ObjectId, ref: 'Website', required: true},
     url_hash: {type: String, required: true},
     url: {type: String, required: true},
     headers: {type: Object},

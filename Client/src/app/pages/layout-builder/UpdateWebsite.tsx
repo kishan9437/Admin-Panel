@@ -22,7 +22,6 @@ const UpdateWebsite: React.FC = () => {
                 const items = await response.json();
                 setName(items.data.name);
                 setURL(items.data.url);
-
             }
             else {
                 console.error('No valid auth token available');

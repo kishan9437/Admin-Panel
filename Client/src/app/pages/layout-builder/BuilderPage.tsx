@@ -11,7 +11,9 @@ import Swal from 'sweetalert2'
 
 interface Item {
   _id: string;
-  name: string;
+  access_key: string,
+  name: string,
+  status: string,
   url: string;
 }
 
@@ -142,7 +144,7 @@ const BuilderPage: React.FC = () => {
       <Content>
         <div className="container" id='tableContainer'>
           <div className='searchContainer'>
-            <span className='pt-1 pe-3 text-white fs-5 fw-bold'>Search : </span>
+            {/* <span className='pt-1 pe-3 text-white fs-5 fw-bold'>Search : </span> */}
             <Form.Control
               type="text"
               placeholder="Search"
@@ -155,6 +157,7 @@ const BuilderPage: React.FC = () => {
             <thead>
               <tr>
                 <th>No</th>
+                <th>Access_key</th>
                 <th onClick={handleSort} className='cursor-pointer'>
                   Name
                   <span className='ms-1 mt-3'>
@@ -162,6 +165,7 @@ const BuilderPage: React.FC = () => {
                   </span>
                 </th>
                 <th>Url</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -170,9 +174,11 @@ const BuilderPage: React.FC = () => {
                 filterWebsite.map((item,index) => (
                   <tr key={index}>
                     <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
+                    <td>{item.access_key}</td>
                     <td>{item.name}</td>
                     {/* <td>{item.url}</td> */}
                     <td><a href={item.url} target='_blank'>{item.url}</a></td>
+                    <td>{item.status}</td>
                     <td>
                       <Link to={`/builder/update-website/${item._id}`}>
                         <button className='actionIcons editBackground'>

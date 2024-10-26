@@ -1,19 +1,23 @@
-#tableContainer .form-control{
+#tableContainer .form-control {
     width: 180px;
     padding: 0.400rem 1rem;
     justify-content: end;
 }
-#tableContainer .searchContainer{
+
+#tableContainer .searchContainer {
     display: flex;
     width: 100%;
     justify-content: end;
 }
-#tableContainer.container{
+
+#tableContainer.container {
     padding: 0px;
 }
-.table-bordered > :not(caption) > * > * {
-    border-width: 0px 2px !important; 
+
+.table-bordered> :not(caption)>*>* {
+    border-width: 0px 2px !important;
 }
+
 .table {
     /* font-family: Arial, sans-serif; */
     border-collapse: collapse;
@@ -31,16 +35,29 @@
     font-size: 14px;
 }
 
+#tableWebsiteUrl.table th {
+    padding: 5px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+#tableWebsiteUrl.table td {
+    padding: 9px;
+    text-align: center;
+    font-size: 12px;
+}
+
 .pagination {
     display: flex;
     justify-content: right !important;
 }
 
 .table th {
-    background-color: #a8a7a7 ;
+    background-color: #a8a7a7;
 }
 
-tbody td .actionIcons{
+tbody td .actionIcons {
     border: none;
     font-size: 15px;
     margin-left: 4px;
@@ -49,17 +66,32 @@ tbody td .actionIcons{
     padding-top: 2px;
 }
 
-tbody td .deleteBackground{
+tbody td .deleteBackground {
     background-color: rgb(233, 22, 22);
     color: white;
     border-radius: 3px;
 }
-tbody td .editBackground{
-    background-color:#1b84ff;
+
+tbody td .editBackground {
+    background-color: #1b84ff;
     color: white;
     border-radius: 3px;
 }
 
-.min-vh-80{
+.min-vh-80 {
     min-height: 80vh;
+}
+
+.custom-dropdown-toggle::after {
+    display: none;
+}
+
+#tableDropdown .custom-dropdown-menu {
+    width: 100%;
+    min-width: 50px !important;
+}
+
+#urlsDropdown .dropdown-toggle {
+    height: 35px !important;
+    padding: 0px 20px;
 }
