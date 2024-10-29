@@ -4,10 +4,11 @@ import Form from 'react-bootstrap/Form'
 import Pagination from 'react-paginate'
 import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEdit, faTrash, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
+import { faEdit, faEllipsisH, faSync, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../modules/auth'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
+import { Dropdown } from 'react-bootstrap'
 
 interface Item {
   _id: string;
@@ -50,9 +51,9 @@ const BuilderPage: React.FC = () => {
 
   // Handle page click for pagination
   const handlePageClick = (selectedPage: { selected: number }) => {
-    const selectedPageNumber = selectedPage.selected + 1;  // Paginate starts at 0
+    const selectedPageNumber = selectedPage.selected + 1;
     setCurrentPage(selectedPageNumber);
-    getAllWebsites(selectedPageNumber);  // Fetch data for new page
+    getAllWebsites(selectedPageNumber);
   };
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,46 +83,72 @@ const BuilderPage: React.FC = () => {
 
   const handleDeleteItem = async (id: string) => {
     try {
-      if (auth && auth.api_token) {
-        const response = await fetch(`http://localhost:5000/api/website/delete/${id}`, {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${auth.api_token}`
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "Do you want to delete this data?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          if (auth && auth.api_token) {
+            const response = await fetch(`http://localhost:5000/api/website/delete/${id}`, {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${auth.api_token}`
+              }
+            })
+            await response.json()
+
+            if (response.ok) {
+              // alert(response.message)
+              Swal.fire({
+                position: 'center',
+                icon: 'success',
+                title: 'Success',
+                text: 'Data Deleting successfully',
+                confirmButtonText: "OK"
+              }).then(() => {
+                getAllWebsites();
+              })
+            }
+            else {
+              Swal.fire({
+                position: 'center',
+                title: 'Error!',
+                text: 'Error deleting data. Please try again',
+                icon: 'error',
+                confirmButtonText: 'OK'
+              });
+            }
           }
-        })
-        await response.json()
-
-        if (response.ok) {
-          // alert(response.message)
-          Swal.fire({
-            position: 'center',
-            icon: 'success',
-            title: 'Success',
-            text: 'Data Deleting successfully',
-            confirmButtonText: "OK"
-          }).then(() => {
-            getAllWebsites();
-          })
+          else {
+            console.error('No valid auth token available');
+            return;
+          }
         }
-        else{
-          Swal.fire({
-            position: 'center',
-            title: 'Error!',
-            text: 'Error deleting data. Please try again',
-            icon: 'error',
-            confirmButtonText: 'OK'
-          });
-        }
-      }
-      else {
-        console.error('No valid auth token available');
-        return;
-      }
-
+      })
     } catch (error) {
       console.log(error)
     }
   }
+
+  const getStatusClass = (status: 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive'): string => {
+    switch (status) {
+      case 'Complete':
+        return 'status-complete';
+      case 'Error':
+        return 'status-error';
+      case 'Active':
+        return 'status-active';
+      case 'Inactive':
+        return 'status-inactive';
+      default:
+        return 'status-pending';
+    }
+  };
 
   useEffect(() => {
     getAllWebsites(currentPage, sortOrder);
@@ -171,29 +198,50 @@ const BuilderPage: React.FC = () => {
             </thead>
             <tbody>
               {filterWebsite.length > 0 ? (
-                filterWebsite.map((item,index) => (
-                  <tr key={index}>
+                filterWebsite.map((item, index) => (
+                  <tr key={index} className='h-50'>
                     <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
                     <td>{item.access_key}</td>
                     <td>{item.name}</td>
                     {/* <td>{item.url}</td> */}
                     <td><a href={item.url} target='_blank'>{item.url}</a></td>
-                    <td>{item.status}</td>
                     <td>
-                      <Link to={`/builder/update-website/${item._id}`}>
+                      <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td>
+                      <Dropdown id='tableDropdown'>
+                        <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>
+                          <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
+                        </Dropdown.Toggle>
+
+                        <Dropdown.Menu className='custom-dropdown-menu'>
+                          <Dropdown.Item as={Link} to={`/builder/update-website/${item._id}`}>
+                            <FontAwesomeIcon icon={faEdit} className='fs-3 ps-2 text-primary' />
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
+                            <FontAwesomeIcon icon={faTrash} className='fs-3 ps-2 text-danger' />
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => getAllWebsites()}>
+                            <FontAwesomeIcon icon={faSync} className='fs-3 ps-2 text-info' />
+                          </Dropdown.Item>
+                        </Dropdown.Menu>
+                      </Dropdown>
+                        {/* <Link to={`/builder/update-website/${item._id}`} className='me-3'>
                         <button className='actionIcons editBackground'>
                           <FontAwesomeIcon icon={faEdit} />
                         </button>
                       </Link>
                       <button onClick={() => handleDeleteItem(item._id)} className='actionIcons deleteBackground'>
                         <FontAwesomeIcon icon={faTrash} />
-                      </button>
+                      </button> */}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className='text-center'>Data Not Found</td>
+                  <td colSpan={6} className='text-center'>Data Not Found</td>
                 </tr>
               )}
 
@@ -204,7 +252,7 @@ const BuilderPage: React.FC = () => {
             previousLabel={'Previous'}
             nextLabel={'Next'}
             breakLabel={'...'}
-            pageCount={totalPages}  // Total pages from API
+            pageCount={totalPages}
             marginPagesDisplayed={2}
             pageRangeDisplayed={3}
             onPageChange={handlePageClick}

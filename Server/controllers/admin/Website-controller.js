@@ -64,20 +64,25 @@ const getUrls = async (req, res) => {
 
 const getWebsiteId=async (req, res) => {
     const { website_id } = req.params;
-
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    
     try {
-        // Check if Website with the given website_id exists
         const website = await Website.findById(website_id);
         if (!website) {
             return res.status(404).json({ message: 'Website not found' });
         }
+        const skip = (page - 1) * limit;
 
-        // Find all WebsiteUrl documents where website_id matches
-        const websiteUrls = await WebsiteUrl.find({ website_id: website_id });
+        const websiteUrls = await WebsiteUrl.find({ website_id: website_id }).skip(skip).limit(limit);
+
+        const totalUrls = await WebsiteUrl.countDocuments({ website_id: website_id });
 
         res.json({
-            // website: website,
-            urls: websiteUrls
+            urls: websiteUrls,
+            totalPages : Math.ceil(totalUrls / limit),
+            currentPage : page,
+            totalItems : totalUrls,
         });
     } catch (error) {
         console.error(error);
@@ -86,6 +91,7 @@ const getWebsiteId=async (req, res) => {
 }
 const getWebsiteById = async (req, res) => {
     const { id } = req.params;
+    
     try {
         const website = await Website.findById(id);
         if (!website) {

@@ -3,14 +3,12 @@ import Table from 'react-bootstrap/Table'
 import Form from 'react-bootstrap/Form'
 import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEdit, faTrash, faChevronLeft, faSync, faEllipsisH } from '@fortawesome/free-solid-svg-icons'
+import { faEdit, faTrash, faSync, faEllipsisH } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../modules/auth'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
-import { url } from 'inspector'
-import { string } from 'yup'
 
 interface WebsiteUrl {
     _id: string,
@@ -31,13 +29,16 @@ interface Website {
     url: string,
     _id: string,
 }
+
 const WebsiteUrlpage: React.FC = () => {
-    const [websiteUrls, setWebsiteUrls] = useState<WebsiteUrl[]>([]);
-    const [search, setSearch] = useState('');
     const [filterWebsite, setFilterWebsite] = useState<WebsiteUrl[]>([]);
+    const [filteredResults, setFilteredResults] = useState<WebsiteUrl[]>([]);
+    const [search, setSearch] = useState('')
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [urls, setUrls] = useState<Website[]>([]);
+    const [currentWebsiteId, setCurrentWebsiteId] = useState<string | null>(null);
+    const [selectedUrl, setSelectedUrl] = useState('')
     const itemsPerPage = 5;
     const { auth } = useAuth();
 
@@ -51,9 +52,7 @@ const WebsiteUrlpage: React.FC = () => {
                     }
                 })
                 const data = await response.json()
-                // console.log(data.data)
                 setUrls(data.data)
-                // console.log(urls)
             }
             else {
                 console.error('No valid auth token available');
@@ -65,18 +64,19 @@ const WebsiteUrlpage: React.FC = () => {
         }
     }
 
-    const fetchWebsiteUrlById = async (websiteId: string) => {
+    const fetchWebsiteUrlById = async (websiteId: string, page: number = 1) => {
         try {
             if (auth && auth.api_token) {
-                const response = await fetch(`http://localhost:5000/api/website-urls-id/${websiteId}`, {
+                const response = await fetch(`http://localhost:5000/api/website-urls-id/${websiteId}?page=${page}&limit=${itemsPerPage}`, {
                     method: 'GET',
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`
                     }
                 });
                 const data = await response.json();
-                console.log(data.urls);
-                setFilterWebsite(data.urls);  // Filtered data ne set kariyu
+                setFilterWebsite(data.urls);
+                setFilteredResults(data.urls);
+                setTotalPages(data.totalPages);
             } else {
                 console.error('No valid auth token available');
             }
@@ -87,82 +87,112 @@ const WebsiteUrlpage: React.FC = () => {
 
     const handleDeleteItem = async (id: string) => {
         try {
-            if (auth && auth.api_token) {
-                const response = await fetch(`http://localhost:5000/api/delete-website-url/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        Authorization: `Bearer ${auth.api_token}`
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "Do you want to delete this data?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    if (auth && auth.api_token) {
+                        const response = await fetch(`http://localhost:5000/api/delete-website-url/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                Authorization: `Bearer ${auth.api_token}`
+                            }
+                        })
+                        await response.json()
+
+                        if (response.ok) {
+                            Swal.fire({
+                                position: 'center',
+                                icon: 'success',
+                                title: 'Success',
+                                text: 'Data Deleting successfully',
+                                confirmButtonText: "OK"
+                            }).then(() => {
+                                if (currentWebsiteId) {
+                                    fetchWebsiteUrlById(currentWebsiteId, currentPage);
+                                }
+                            })
+                        }
+                        else {
+                            Swal.fire({
+                                position: 'center',
+                                title: 'Error!',
+                                text: 'Error deleting data. Please try again',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                        }
                     }
-                })
-                await response.json()
-
-                if (response.ok) {
-                    Swal.fire({
-                        position: 'center',
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'Data Deleting successfully',
-                        confirmButtonText: "OK"
-                    }).then(() => {
-                        // fetchWebsiteUrlById();
-                    })
+                    else {
+                        console.error('No valid auth token available');
+                        return;
+                    }
                 }
-                else {
-                    Swal.fire({
-                        position: 'center',
-                        title: 'Error!',
-                        text: 'Error deleting data. Please try again',
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
-                }
-            }
-            else {
-                console.error('No valid auth token available');
-                return;
-            }
-
+            })
         } catch (error) {
             console.log(error)
         }
     }
 
-    const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const value = event.target.value.trim().toLowerCase()
-        setSearch(value);
-
-        if (value === "") {
-            setFilterWebsite(filterWebsite);
-        }
-        else {
-            const searchTerm = value.split(' ');
-            const filtered = filterWebsite.filter((user) => {
-                return searchTerm.some((term) =>
-                    user.url.toLowerCase().includes(term) ||
-                    user.url_hash.toLowerCase().includes(term) ||
-                    user.status_code.toString().toLowerCase().includes(term) ||
-                    user.status.toLowerCase().includes(term) ||
-                    user.depth.toString().toLowerCase().includes(term) ||
-                    user.parent_url.toLowerCase().includes(term) ||
-                    user.is_archived.toString().toLowerCase().includes(term)
-                );
-            });
-            setFilterWebsite(filtered);
-        }
-    }
-
     const handlePageClick = (selectedPage: { selected: number }) => {
-        const selectedPageNumber = selectedPage.selected + 1;  // Paginate starts at 0
+        const selectedPageNumber = selectedPage.selected + 1;
         setCurrentPage(selectedPageNumber);
-        // fetchWebsiteUrlById(selectedPageNumber);  // Fetch data for new page
+
+        if (currentWebsiteId) {
+            fetchWebsiteUrlById(currentWebsiteId, selectedPageNumber);
+        } else {
+            console.error('Current website ID is not set.');
+        }
     }
 
-
-    const handleUrlClick = async (websiteId: string) => {
+    const handleUrlClick = async (websiteId: string, url: string) => {
+        setCurrentWebsiteId(websiteId)
+        setCurrentPage(1);
         fetchWebsiteUrlById(websiteId)
+        setSelectedUrl(url)
     }
+
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const searchTerm = e.target.value.toLowerCase();
+        setSearch(searchTerm);
+
+        if (searchTerm === '') {
+            setFilteredResults(filterWebsite);
+        } else {
+            const results = filterWebsite.filter(item =>
+                item.website_id.toLowerCase().includes(searchTerm) ||
+                item.url.toLowerCase().includes(searchTerm) ||
+                item.status.toLowerCase().includes(searchTerm) ||
+                item.status_code.toString().includes(searchTerm) ||
+                item.depth.toString().includes(searchTerm) ||
+                item.parent_url.toLowerCase().includes(searchTerm)
+            );
+            setFilteredResults(results);
+        }
+    }
+
+    const getStatusClass = (status: 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive'): string => {
+        switch (status) {
+            case 'Complete':
+                return 'status-complete';
+            case 'Error':
+                return 'status-error';
+            case 'Active':
+                return 'status-active';
+            case 'Inactive':
+                return 'status-inactive';
+            default:
+                return 'status-pending';
+        }
+    };
+
     useEffect(() => {
-        // fetchWebsiteUrlById();
         fetchUrl();
     }, [])
     return (
@@ -188,13 +218,19 @@ const WebsiteUrlpage: React.FC = () => {
 
                                 <Dropdown.Menu>
                                     {urls.map((items, index) => (
-                                        <Dropdown.Item key={index} onClick={() => handleUrlClick(items._id)}>
+                                        <Dropdown.Item key={index} onClick={() => handleUrlClick(items._id, items.url)}>
                                             {items.url}
-                                            {/* {items._id} */}
                                         </Dropdown.Item>
                                     ))}
                                 </Dropdown.Menu>
                             </Dropdown>
+                            <div className='pt-0 ps-5'>
+                                <div className="card shadow-sm shadow-sg rounded p-0 " style={{ maxWidth: '400px' }}>
+                                    <div className="card-body pt-1 pb-0">
+                                        <h6 className="card-title padding-top">Selected URL : {selectedUrl || "No URL Selected"}</h6>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         {/* <span className='pt-1 pe-3 text-white fs-5 fw-bold'>Search : </span> */}
                         <Form.Control
@@ -206,7 +242,7 @@ const WebsiteUrlpage: React.FC = () => {
                         />
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table" style={{ minWidth: '100%' }}>
+                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table " style={{ minWidth: '100%' }}>
                             <thead>
                                 <tr>
                                     <th>Website Id</th>
@@ -224,91 +260,87 @@ const WebsiteUrlpage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filterWebsite.length > 0 ? (
-                                    filterWebsite.map((item, index) => (
-                                        <tr key={index}>
-                                            <td>{item.website_id}</td>
-                                            <td>{item.url_hash}</td>
-                                            <td><a href={item.url} target='_blank'>{item.url}</a></td>
-                                            <td>{new Date(item.last_render_at).toLocaleString()}</td>
-                                            <td>{item.status_code}</td>
-                                            <td>{new Date(item.created_at).toLocaleString()}</td>
-                                            <td>{item.depth}</td>
-                                            <td>{item.is_archived ? 'Yes' : 'No'}</td>
-                                            <td>
-                                                {item.headers && Object.keys(item.headers).map((key) => (
-                                                    <div key={key}>
-                                                        <span>{key}:</span> {item.headers[key]}
-                                                    </div>
-                                                ))}
-                                            </td>
-                                            <td><a href={item.parent_url} target='_blank'>{item.parent_url}</a></td>
-                                            <td>{item.status}</td>
-                                            <td>
-                                                <div>
+                                {selectedUrl ? (
+                                    filteredResults.length > 0 ? (
+                                        filteredResults.map((item, index) => (
+                                            <tr key={index}>
+                                                <td>{item.website_id}</td>
+                                                <td>{item.url_hash}</td>
+                                                <td><a href={item.url} target='_blank' rel='noopener noreferrer'>{item.url}</a></td>
+                                                <td>{new Date(item.last_render_at).toLocaleString()}</td>
+                                                <td>{item.status_code}</td>
+                                                <td>{new Date(item.created_at).toLocaleString()}</td>
+                                                <td>{item.depth}</td>
+                                                <td>{item.is_archived ? 'Yes' : 'No'}</td>
+                                                <td>
+                                                    {item.headers && Object.keys(item.headers).map((key) => (
+                                                        <div key={key}>
+                                                            <span>{key}:</span> {item.headers[key]}
+                                                        </div>
+                                                    ))}
+                                                </td>
+                                                <td><a href={item.parent_url} target='_blank' rel='noopener noreferrer'>{item.parent_url}</a></td>
+                                                <td>
+                                                    <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
+                                                        {item.status}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <Dropdown id='tableDropdown'>
+                                                        <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle'>
+                                                            <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
+                                                        </Dropdown.Toggle>
 
-                                                </div>
-                                                <Dropdown id='tableDropdown'>
-                                                    <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle'>
-                                                        <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
-                                                    </Dropdown.Toggle>
-
-                                                    <Dropdown.Menu className='custom-dropdown-menu'>
-                                                        <Dropdown.Item as={Link} to={`/websiteurl/update-websiteUrl/${item._id}`}>
-                                                            <FontAwesomeIcon icon={faEdit} className='fs-4 ps-2 text-primary' />
-                                                        </Dropdown.Item>
-                                                        <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
-                                                            <FontAwesomeIcon icon={faTrash} className='fs-4 ps-2 text-danger' />
-                                                        </Dropdown.Item>
-                                                        <Dropdown.Item>
-                                                            <FontAwesomeIcon icon={faSync} className='fs-4 ps-2 text-info' />
-                                                        </Dropdown.Item>
-                                                    </Dropdown.Menu>
-                                                </Dropdown>
-                                            </td>
-                                            {/* <td>
-                                                <div className='d-flex'>
-                                                    <Link to={`/websiteurl/update-websiteUrl/${item._id}`}>
-                                                        <button className='actionIcons editBackground'>
-                                                            <FontAwesomeIcon icon={faEdit} />
-                                                        </button>
-                                                    </Link>
-                                                    <button onClick={() => handleDeleteItem(item._id)} className='actionIcons deleteBackground'>
-                                                        <FontAwesomeIcon icon={faTrash} />
-                                                    </button>
-                                                </div>
-                                            </td> */}
+                                                        <Dropdown.Menu className='custom-dropdown-menu '>
+                                                            <Dropdown.Item as={Link} to={`/websiteurl/update-websiteUrl/${item._id}`}>
+                                                                <FontAwesomeIcon icon={faEdit} className='fs-3 ps-2 text-primary' />
+                                                            </Dropdown.Item>
+                                                            <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
+                                                                <FontAwesomeIcon icon={faTrash} className='fs-3 ps-2 text-danger' />
+                                                            </Dropdown.Item>
+                                                            <Dropdown.Item onClick={() => fetchWebsiteUrlById(item.website_id)}>
+                                                                <FontAwesomeIcon icon={faSync} className='fs-3 ps-2 text-info' />
+                                                            </Dropdown.Item>
+                                                        </Dropdown.Menu>
+                                                    </Dropdown>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={12} className='text-center'>Data Not Found</td>
                                         </tr>
-                                    ))
+                                    )
                                 ) : (
                                     <tr>
-                                        <td colSpan={12} className='text-center'>Data Not Found</td>
+                                        <td colSpan={12} className='text-center'>No URL selected in dropdown</td>
                                     </tr>
                                 )}
-
                             </tbody>
                         </Table>
 
                     </div>
-                    <Pagination
-                        previousLabel={'Previous'}
-                        nextLabel={'Next'}
-                        breakLabel={'...'}
-                        pageCount={totalPages}  // Total pages from API
-                        marginPagesDisplayed={2}
-                        pageRangeDisplayed={3}
-                        onPageChange={handlePageClick}
-                        containerClassName={'pagination justify-content-right'}
-                        pageClassName={'page-item'}
-                        pageLinkClassName={'page-link'}
-                        previousClassName={'page-item'}
-                        previousLinkClassName={'page-link'}
-                        nextClassName={'page-item'}
-                        nextLinkClassName={'page-link'}
-                        breakClassName={'page-item'}
-                        breakLinkClassName={'page-link'}
-                        activeClassName={'active'}
-                    />
+                    {selectedUrl && filteredResults.length > 0 && (
+                        <Pagination
+                            previousLabel={'Previous'}
+                            nextLabel={'Next'}
+                            breakLabel={'...'}
+                            pageCount={totalPages}  // Total pages from API
+                            marginPagesDisplayed={2}
+                            pageRangeDisplayed={3}
+                            onPageChange={handlePageClick}
+                            containerClassName={'pagination justify-content-right'}
+                            pageClassName={'page-item'}
+                            pageLinkClassName={'page-link'}
+                            previousClassName={'page-item'}
+                            previousLinkClassName={'page-link'}
+                            nextClassName={'page-item'}
+                            nextLinkClassName={'page-link'}
+                            breakClassName={'page-item'}
+                            breakLinkClassName={'page-link'}
+                            activeClassName={'active'}
+                        />
+                    )}
                 </div>
             </Content>
         </>
