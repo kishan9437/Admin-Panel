@@ -9,6 +9,11 @@ import { useAuth } from '../../modules/auth'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import { Dropdown } from 'react-bootstrap'
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { useNavigate } from 'react-router-dom'
+import { url } from 'inspector'
+import { number } from 'yup'
 
 interface Item {
   _id: string;
@@ -18,6 +23,13 @@ interface Item {
   url: string;
 }
 
+// interface Item {
+//   url: string;
+// }
+
+interface BuilderPage {
+  item: Item;
+}
 const BuilderPage: React.FC = () => {
   const [website, setWebsite] = useState<Item[]>([]);
   const [search, setSearch] = useState('');
@@ -25,12 +37,14 @@ const BuilderPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const { auth } = useAuth();
+  const [loading, setLoading] = useState(true);
 
-  const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc') => {
+  const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc',) => {
     try {
       if (auth && auth.api_token) {
+        setLoading(true);
         const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order=${order}`, {
           headers: {
             Authorization: `Bearer ${auth.api_token}`,
@@ -40,6 +54,7 @@ const BuilderPage: React.FC = () => {
         setWebsite(data.websites);
         setFilterWebsite(data.websites);
         setTotalPages(data.totalPages);
+        setLoading(false);
         // console.log(data)
       } else {
         console.error('No valid auth token available');
@@ -48,6 +63,28 @@ const BuilderPage: React.FC = () => {
       console.error('Error fetching websites:', error);
     }
   }
+
+  // const fetchUrlTotal = async () => {
+  //   try {
+  //     if (auth && auth.api_token) {
+  //       setLoading(true);
+  //       const response = await fetch(`http://localhost:5000/api/website-urls-id`, {
+  //         method: 'GET',
+  //         headers: {
+  //           Authorization: `Bearer ${auth.api_token}`
+  //         }
+  //       });
+  //       const data = await response.json();
+  //       console.log(data);
+        
+  //     } else {
+  //       console.error('No valid auth token available');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching website URL by ID', error);
+  //     setLoading(false);
+  //   }
+  // }
 
   // Handle page click for pagination
   const handlePageClick = (selectedPage: { selected: number }) => {
@@ -150,9 +187,16 @@ const BuilderPage: React.FC = () => {
     }
   };
 
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newItemsPerPage = parseInt(e.target.value);
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+
   useEffect(() => {
     getAllWebsites(currentPage, sortOrder);
-  }, []);
+    // fetchUrlTotal();
+  }, [itemsPerPage, currentPage]);
 
   return (
     <>
@@ -172,6 +216,16 @@ const BuilderPage: React.FC = () => {
         <div className="container" id='tableContainer'>
           <div className='searchContainer'>
             {/* <span className='pt-1 pe-3 text-white fs-5 fw-bold'>Search : </span> */}
+            <div className="d-flex align-items-center mb-3 me-3 ">
+              <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='ps-1 rounded h-100'>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
             <Form.Control
               type="text"
               placeholder="Search"
@@ -180,11 +234,10 @@ const BuilderPage: React.FC = () => {
               className="mb-3"
             />
           </div>
-          <Table striped bordered hover responsive="sm" className="table">
+          <Table striped bordered hover responsive="sm" className="table rounded rounded overflow-hidden">
             <thead>
               <tr>
                 <th>No</th>
-                <th>Access_key</th>
                 <th onClick={handleSort} className='cursor-pointer'>
                   Name
                   <span className='ms-1 mt-3'>
@@ -192,19 +245,34 @@ const BuilderPage: React.FC = () => {
                   </span>
                 </th>
                 <th>Url</th>
+                <th>Access_key</th>
                 <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {filterWebsite.length > 0 ? (
+              {loading ? (
+                Array(5).fill(0).map((_, index) => (
+                  <tr key={index}>
+                    <td><Skeleton count={1} width={20} /></td>
+                    <td><Skeleton count={1} width={110} /></td>
+                    <td><Skeleton count={1} width={220} /></td>
+                    <td><Skeleton count={1} width={120} /></td>
+                    <td><Skeleton count={1} width={70} /></td>
+                    <td></td>
+                  </tr>
+                ))
+              ) : filterWebsite.length > 0 ? (
                 filterWebsite.map((item, index) => (
                   <tr key={index} className='h-50'>
                     <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
-                    <td>{item.access_key}</td>
                     <td>{item.name}</td>
                     {/* <td>{item.url}</td> */}
-                    <td><a href={item.url} target='_blank'>{item.url}</a></td>
+                    <td><Link to={`/websiteurl/${item._id}`}>
+                      {item.url}
+                    </Link>
+                    </td>
+                    <td>{item.access_key}</td>
                     <td>
                       <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
                         {item.status}
@@ -218,24 +286,19 @@ const BuilderPage: React.FC = () => {
 
                         <Dropdown.Menu className='custom-dropdown-menu'>
                           <Dropdown.Item as={Link} to={`/builder/update-website/${item._id}`}>
-                            <FontAwesomeIcon icon={faEdit} className='fs-3 ps-2 text-primary' />
+                            <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
+                            <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
                           </Dropdown.Item>
                           <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
-                            <FontAwesomeIcon icon={faTrash} className='fs-3 ps-2 text-danger' />
+                            <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
+                            <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
                           </Dropdown.Item>
                           <Dropdown.Item onClick={() => getAllWebsites()}>
-                            <FontAwesomeIcon icon={faSync} className='fs-3 ps-2 text-info' />
+                            <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
+                            <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
                           </Dropdown.Item>
                         </Dropdown.Menu>
                       </Dropdown>
-                        {/* <Link to={`/builder/update-website/${item._id}`} className='me-3'>
-                        <button className='actionIcons editBackground'>
-                          <FontAwesomeIcon icon={faEdit} />
-                        </button>
-                      </Link>
-                      <button onClick={() => handleDeleteItem(item._id)} className='actionIcons deleteBackground'>
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button> */}
                     </td>
                   </tr>
                 ))
@@ -243,7 +306,8 @@ const BuilderPage: React.FC = () => {
                 <tr>
                   <td colSpan={6} className='text-center'>Data Not Found</td>
                 </tr>
-              )}
+              )
+              }
 
             </tbody>
           </Table>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, HtmlHTMLAttributes } from 'react'
 import Table from 'react-bootstrap/Table'
 import Form from 'react-bootstrap/Form'
 import { Content } from '../../../_metronic/layout/components/Content'
@@ -9,6 +9,10 @@ import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { useParams } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 
 interface WebsiteUrl {
     _id: string,
@@ -39,11 +43,17 @@ const WebsiteUrlpage: React.FC = () => {
     const [urls, setUrls] = useState<Website[]>([]);
     const [currentWebsiteId, setCurrentWebsiteId] = useState<string | null>(null);
     const [selectedUrl, setSelectedUrl] = useState('')
-    const itemsPerPage = 5;
+    const [itemsPerPage, setItemsPerPage] = useState(5);
     const { auth } = useAuth();
+    const [loading, setLoading] = useState(true);
+    // const param = useParams<{ id: string }>();
+    // const id = param.id;
+    const { id } = useParams<{ id: string }>();
+    const [parent_url, setParent_url] = useState('')
 
     const fetchUrl = async () => {
         try {
+            setLoading(true);
             if (auth && auth.api_token) {
                 const response = await fetch(`http://localhost:5000/api/website-url`, {
                     method: 'GET',
@@ -53,20 +63,21 @@ const WebsiteUrlpage: React.FC = () => {
                 })
                 const data = await response.json()
                 setUrls(data.data)
+                setLoading(false);
             }
             else {
                 console.error('No valid auth token available');
                 return;
             }
-
         } catch (error) {
             console.log(error);
         }
     }
 
-    const fetchWebsiteUrlById = async (websiteId: string, page: number = 1) => {
+    const fetchWebsiteUrlById = async (websiteId: string, page: number = 1, itemsPerPage: number) => {
         try {
             if (auth && auth.api_token) {
+                setLoading(true);
                 const response = await fetch(`http://localhost:5000/api/website-urls-id/${websiteId}?page=${page}&limit=${itemsPerPage}`, {
                     method: 'GET',
                     headers: {
@@ -74,14 +85,25 @@ const WebsiteUrlpage: React.FC = () => {
                     }
                 });
                 const data = await response.json();
+                console.log(data);
+                if (Array.isArray(data.urls)) {
+                    const matchedUrls = data.urls.filter((item: WebsiteUrl) => item.website_id === id);
+                    setFilterWebsite(matchedUrls);
+                    setFilteredResults(matchedUrls);
+                    setTotalPages(data.totalPages || 1);
+                } else {
+                    console.error("Data format error: 'urls' is not an array.");
+                }
                 setFilterWebsite(data.urls);
                 setFilteredResults(data.urls);
                 setTotalPages(data.totalPages);
+                setLoading(false);
             } else {
                 console.error('No valid auth token available');
             }
         } catch (error) {
             console.error('Error fetching website URL by ID', error);
+            setLoading(false);
         }
     }
 
@@ -115,7 +137,7 @@ const WebsiteUrlpage: React.FC = () => {
                                 confirmButtonText: "OK"
                             }).then(() => {
                                 if (currentWebsiteId) {
-                                    fetchWebsiteUrlById(currentWebsiteId, currentPage);
+                                    fetchWebsiteUrlById(currentWebsiteId, currentPage, itemsPerPage);
                                 }
                             })
                         }
@@ -145,16 +167,16 @@ const WebsiteUrlpage: React.FC = () => {
         setCurrentPage(selectedPageNumber);
 
         if (currentWebsiteId) {
-            fetchWebsiteUrlById(currentWebsiteId, selectedPageNumber);
+            fetchWebsiteUrlById(currentWebsiteId, selectedPageNumber, itemsPerPage);
         } else {
-            console.error('Current website ID is not set.');
+            console.log('Current website ID is not set.');
         }
     }
 
     const handleUrlClick = async (websiteId: string, url: string) => {
         setCurrentWebsiteId(websiteId)
         setCurrentPage(1);
-        fetchWebsiteUrlById(websiteId)
+        fetchWebsiteUrlById(websiteId, 1, itemsPerPage)
         setSelectedUrl(url)
     }
 
@@ -177,7 +199,7 @@ const WebsiteUrlpage: React.FC = () => {
         }
     }
 
-    const getStatusClass = (status: 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive'): string => {
+    const getStatusClass = (status: string): string => {
         switch (status) {
             case 'Complete':
                 return 'status-complete';
@@ -187,16 +209,33 @@ const WebsiteUrlpage: React.FC = () => {
                 return 'status-active';
             case 'Inactive':
                 return 'status-inactive';
-            default:
+            case 'Pending':
                 return 'status-pending';
+            default:
+                return 'status-unknown';
         }
     };
 
+    const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newItemsPerPage = Number(e.target.value);
+        setItemsPerPage(newItemsPerPage);
+        setCurrentPage(1);
+        if (currentWebsiteId) {
+            fetchWebsiteUrlById(currentWebsiteId, 1, newItemsPerPage);
+        }
+    };
+
+    
     useEffect(() => {
         fetchUrl();
-    }, [])
+        if (id) {
+            fetchWebsiteUrlById(id, currentPage, itemsPerPage);
+        }
+    }, [id, itemsPerPage, currentPage]);
+
     return (
         <>
+
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
                 <div id="kt_toolbar_container" className="container d-flex flex-stack">
                     <div className="page-title d-flex flex-column">
@@ -233,6 +272,16 @@ const WebsiteUrlpage: React.FC = () => {
                             </div>
                         </div>
                         {/* <span className='pt-1 pe-3 text-white fs-5 fw-bold'>Search : </span> */}
+
+                        <div className="d-flex align-items-center mb-3 me-3 ">
+                            <select name="" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='ps-1 rounded h-100'>
+                                <option value={5}>5</option>
+                                <option value={10}>10</option>
+                                <option value={25}>25</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                            </select>
+                        </div>
                         <Form.Control
                             type="text"
                             placeholder="Search"
@@ -242,85 +291,101 @@ const WebsiteUrlpage: React.FC = () => {
                         />
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table " style={{ minWidth: '100%' }}>
+                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table rounded overflow-hidden" style={{ minWidth: '100%' }}>
                             <thead>
                                 <tr>
                                     <th>Website Id</th>
                                     <th>URL Hash</th>
                                     <th>URL</th>
                                     <th>Last Render At</th>
-                                    <th>Status Code</th>
                                     <th>Created At</th>
                                     <th>Depth</th>
                                     <th>Archived</th>
                                     <th>Header</th>
                                     <th>Parent URL</th>
+                                    <th>Status Code</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {selectedUrl ? (
-                                    filteredResults.length > 0 ? (
-                                        filteredResults.map((item, index) => (
-                                            <tr key={index}>
-                                                <td>{item.website_id}</td>
-                                                <td>{item.url_hash}</td>
-                                                <td><a href={item.url} target='_blank' rel='noopener noreferrer'>{item.url}</a></td>
-                                                <td>{new Date(item.last_render_at).toLocaleString()}</td>
-                                                <td>{item.status_code}</td>
-                                                <td>{new Date(item.created_at).toLocaleString()}</td>
-                                                <td>{item.depth}</td>
-                                                <td>{item.is_archived ? 'Yes' : 'No'}</td>
-                                                <td>
-                                                    {item.headers && Object.keys(item.headers).map((key) => (
-                                                        <div key={key}>
-                                                            <span>{key}:</span> {item.headers[key]}
-                                                        </div>
-                                                    ))}
-                                                </td>
-                                                <td><a href={item.parent_url} target='_blank' rel='noopener noreferrer'>{item.parent_url}</a></td>
-                                                <td>
-                                                    <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
-                                                        {item.status}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <Dropdown id='tableDropdown'>
-                                                        <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle'>
-                                                            <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
-                                                        </Dropdown.Toggle>
-
-                                                        <Dropdown.Menu className='custom-dropdown-menu '>
-                                                            <Dropdown.Item as={Link} to={`/websiteurl/update-websiteUrl/${item._id}`}>
-                                                                <FontAwesomeIcon icon={faEdit} className='fs-3 ps-2 text-primary' />
-                                                            </Dropdown.Item>
-                                                            <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
-                                                                <FontAwesomeIcon icon={faTrash} className='fs-3 ps-2 text-danger' />
-                                                            </Dropdown.Item>
-                                                            <Dropdown.Item onClick={() => fetchWebsiteUrlById(item.website_id)}>
-                                                                <FontAwesomeIcon icon={faSync} className='fs-3 ps-2 text-info' />
-                                                            </Dropdown.Item>
-                                                        </Dropdown.Menu>
-                                                    </Dropdown>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={12} className='text-center'>Data Not Found</td>
+                                {loading ? (
+                                    // Show skeletons while data is loading
+                                    Array(5).fill(0).map((_, index) => (
+                                        <tr key={index}>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td><Skeleton count={1} /></td>
+                                            <td></td>
                                         </tr>
-                                    )
+                                    ))
+                                ) : filteredResults.length > 0 ? (
+                                    // Map through filteredResults to display data
+                                    filteredResults.map((item, index) => (
+                                        <tr key={index}>
+                                            <td>{item.website_id}</td>
+                                            <td>{item.url_hash}</td>
+                                            <td><a href={item.url} target='_blank' rel='noopener noreferrer'>{item.url}</a></td>
+                                            <td>{new Date(item.last_render_at).toLocaleString()}</td>
+                                            <td>{new Date(item.created_at).toLocaleString()}</td>
+                                            <td>{item.depth}</td>
+                                            <td>{item.is_archived ? 'Yes' : 'No'}</td>
+                                            <td>
+                                                {item.headers && Object.keys(item.headers).map((key) => (
+                                                    <div key={key}>
+                                                        <span>{key}:</span> {item.headers[key]}
+                                                    </div>
+                                                ))}
+                                            </td>
+                                            <td><a href={item.parent_url} target='_blank' rel='noopener noreferrer'>{item.parent_url}</a></td>
+                                            <td>{item.status_code}</td>
+                                            <td>
+                                                <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
+                                                    {item.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <Dropdown id='tableDropdown'>
+                                                    <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle'>
+                                                        <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
+                                                    </Dropdown.Toggle>
+                                                    <Dropdown.Menu className='custom-dropdown-menu'>
+                                                        <Dropdown.Item as={Link} to={`/websiteurl/update-websiteUrl/${item._id}`}>
+                                                            <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
+                                                            <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
+                                                        </Dropdown.Item>
+                                                        <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
+                                                            <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
+                                                            <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
+                                                        </Dropdown.Item>
+                                                        <Dropdown.Item onClick={() => fetchWebsiteUrlById(item.website_id, 1, itemsPerPage)}>
+                                                            <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
+                                                            <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
+                                                        </Dropdown.Item>
+                                                    </Dropdown.Menu>
+                                                </Dropdown>
+                                            </td>
+                                        </tr>
+                                    ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={12} className='text-center'>No URL selected in dropdown</td>
+                                        <td colSpan={12} className='text-center'>Data Not Found</td>
                                     </tr>
-                                )}
+                                )
+                            }
                             </tbody>
                         </Table>
 
                     </div>
-                    {selectedUrl && filteredResults.length > 0 && (
+                    {filteredResults.length > 0 && (
                         <Pagination
                             previousLabel={'Previous'}
                             nextLabel={'Next'}

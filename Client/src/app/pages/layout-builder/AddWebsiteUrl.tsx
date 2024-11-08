@@ -106,15 +106,15 @@ const AddWebsiteUrl: React.FC = () => {
                         <input type="text" className="form-control bg-transparent" name="url" placeholder="Enter URL" value={formData.url} onChange={handleChange} required />
                     </div>
 
-                    <div className="mb-5">
+                    {/* <div className="mb-5">
                         <label className="form-label fw-bold mb-1" htmlFor="url">Parent URL:</label>
                         <input type="text" className="form-control bg-transparent" name="parent_url" placeholder="Enter Parent URL" value={formData.parent_url} onChange={handleChange} />
-                    </div>
+                    </div> */}
 
-                    <div className="mb-5">
+                    {/* <div className="mb-5">
                         <label className="form-label fw-bold mb-1" htmlFor="url">Headers:</label>
                         <input type="text" className="form-control bg-transparent" name="User-Agent" placeholder="Enter Headers" onChange={handleHeadersChange} />
-                    </div>
+                    </div> */}
 
                     <div className="mb-5">
                         <label className="form-label fw-bold mb-1" htmlFor="url">Last Render At:</label>
