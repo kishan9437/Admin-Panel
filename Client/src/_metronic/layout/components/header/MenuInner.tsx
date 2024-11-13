@@ -10,13 +10,18 @@ export function MenuInner() {
       <MenuItem title={intl.formatMessage({id: 'MENU.DASHBOARD'})} to='/dashboard' />
       <MenuItem title='Websites' to='/builder' />
       <MenuItem title='WebsitesUrl' to='/websiteurl'/>
+      <MenuItem title='Activity' to='/activity'/>
+      <MenuItem title='CrawlError' to='/crawlerror'/>
+      <MenuItem title='Error500' to='/500Error'/>
+      <MenuItem title='Error400' to='/400Error'/>
+      <MenuItem title='CrawlSession' to='/crawlsession'/>
+
       {/* <MenuInnerWithSub
         title='Crafted'
         to='/crafted'
         menuPlacement='bottom-start'
         menuTrigger='click'
       >
-        
         <MenuInnerWithSub
           title='Pages'
           to='/crafted/pages'

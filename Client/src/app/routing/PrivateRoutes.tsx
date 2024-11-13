@@ -7,8 +7,12 @@ import { MenuTestPage } from '../pages/MenuTestPage'
 import { getCSSVariableValue } from '../../_metronic/assets/ts/_utils'
 import { WithChildren } from '../../_metronic/helpers'
 import BuilderPageWrapper from '../pages/layout-builder/BuilderPageWrapper'
-// import { AddWebsite } from '../pages/layout-builder/AddWebsite'
 import WebsitesUrlPageWrapper from '../pages/layout-builder/WebsitesUrlPageWrapper'
+import ActivityPageWrapper from '../pages/layout-builder/ActivityPageWrapper'
+import CrawlErrorPageWrapper from '../pages/layout-builder/CrawlErrorPageWrapper'
+import Error500WebsitePageWrapper from '../pages/layout-builder/Error500WebsitePageWrapper'
+import Error400WebsitePageWrapper from '../pages/layout-builder/Error400WebsitePageWrapper'
+import CrawlSessionPageWrapper from '../pages/layout-builder/CrawlSessionPageWrapper'
 
 const PrivateRoutes = () => {
   const ProfilePage = lazy(() => import('../modules/profile/ProfilePage'))
@@ -28,6 +32,12 @@ const PrivateRoutes = () => {
         <Route path='builder/*' element={<BuilderPageWrapper />} />
         <Route path='menu-test' element={<MenuTestPage />} />
         <Route path='websiteurl/*' element={<WebsitesUrlPageWrapper/>}/>
+        <Route path='activity/*' element={<ActivityPageWrapper/>}/>
+        <Route path='crawlerror/*' element={<CrawlErrorPageWrapper/>}/>
+        <Route path='500Error/*' element={<Error500WebsitePageWrapper/>}/>
+        <Route path='400Error/*' element={<Error400WebsitePageWrapper/>}/>
+        <Route path='crawlsession/*' element={<CrawlSessionPageWrapper/>}/>
+
         {/* Lazy Modules */}
         <Route
           path='crafted/pages/profile/*'

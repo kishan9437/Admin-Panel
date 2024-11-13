@@ -12,7 +12,6 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useParams } from 'react-router-dom'
-import { useLocation } from 'react-router-dom'
 
 interface WebsiteUrl {
     _id: string,
@@ -32,6 +31,7 @@ interface WebsiteUrl {
 interface Website {
     url: string,
     _id: string,
+    id: string;
 }
 
 const WebsiteUrlpage: React.FC = () => {
@@ -46,10 +46,7 @@ const WebsiteUrlpage: React.FC = () => {
     const [itemsPerPage, setItemsPerPage] = useState(5);
     const { auth } = useAuth();
     const [loading, setLoading] = useState(true);
-    // const param = useParams<{ id: string }>();
-    // const id = param.id;
     const { id } = useParams<{ id: string }>();
-    const [parent_url, setParent_url] = useState('')
 
     const fetchUrl = async () => {
         try {
@@ -62,7 +59,11 @@ const WebsiteUrlpage: React.FC = () => {
                     }
                 })
                 const data = await response.json()
-                setUrls(data.data)
+                if (data && data.data) {
+                    setUrls(data.data);  
+                } else {
+                    console.error("URLs not found in data");
+                }
                 setLoading(false);
             }
             else {
@@ -85,7 +86,6 @@ const WebsiteUrlpage: React.FC = () => {
                     }
                 });
                 const data = await response.json();
-                console.log(data);
                 if (Array.isArray(data.urls)) {
                     const matchedUrls = data.urls.filter((item: WebsiteUrl) => item.website_id === id);
                     setFilterWebsite(matchedUrls);
@@ -225,13 +225,21 @@ const WebsiteUrlpage: React.FC = () => {
         }
     };
 
-    
     useEffect(() => {
         fetchUrl();
         if (id) {
             fetchWebsiteUrlById(id, currentPage, itemsPerPage);
         }
     }, [id, itemsPerPage, currentPage]);
+
+    useEffect(() => {
+        if (urls.length > 0 && id) {
+            const url = urls.find((url) => url._id === id);
+            if (url) {
+                setSelectedUrl(url.url); 
+            }
+        }
+    }, [urls, id]);
 
     return (
         <>
@@ -290,8 +298,8 @@ const WebsiteUrlpage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table rounded overflow-hidden" style={{ minWidth: '100%' }}>
+                    <div className='overflow-x-auto'>
+                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table"  style={{ minWidth: '100%' }}>
                             <thead>
                                 <tr>
                                     <th>Website Id</th>
@@ -380,7 +388,7 @@ const WebsiteUrlpage: React.FC = () => {
                                         <td colSpan={12} className='text-center'>Data Not Found</td>
                                     </tr>
                                 )
-                            }
+                                }
                             </tbody>
                         </Table>
 

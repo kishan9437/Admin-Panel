@@ -94,6 +94,8 @@ tbody td .editBackground {
 #tableDropdown .custom-dropdown-menu {
     /* width: 100%; */
     min-width: 56px !important;
+    position: fixed !important;
+    z-index: 1050;
 }
 
 .w-auto {
@@ -117,6 +119,11 @@ tbody td .editBackground {
     text-align: center;
 }
 
+.status-cell.status-success {
+    background-color: #28a745;
+    /* Light green for success */
+}
+
 .status-cell.status-pending {
     background-color: #ffc107;
 }
@@ -135,4 +142,19 @@ tbody td .editBackground {
 
 .status-cell.status-inactive {
     background-color: #6c757d;
+}
+
+.errorBtn {
+    height: 32px;
+    background-color: #1B84FF;
+    border: none;
+    color: #fff;
+    font-weight: bold;
+    padding: 0px 20px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.errorBtn:hover {
+    background-color: #056de5;
 }

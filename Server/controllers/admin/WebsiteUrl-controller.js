@@ -23,7 +23,7 @@ const getWebsiteUrls = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const skip = (page - 1) * limit;
-        const totalWebsitesUrl = await WebsiteUrl.countDocuments();  // Total count of documents
+        const totalWebsitesUrl = await WebsiteUrl.countDocuments();  
 
         const websiteUrls = await WebsiteUrl.find({}).skip(skip).limit(limit);
         res.status(200).json({

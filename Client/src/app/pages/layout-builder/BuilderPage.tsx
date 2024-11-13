@@ -12,8 +12,6 @@ import { Dropdown } from 'react-bootstrap'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useNavigate } from 'react-router-dom'
-import { url } from 'inspector'
-import { number } from 'yup'
 
 interface Item {
   _id: string;
@@ -21,14 +19,15 @@ interface Item {
   name: string,
   status: string,
   url: string;
+  totalItems?: number;
 }
 
-// interface Item {
-//   url: string;
-// }
-
+interface WebsiteUrl {
+  website_id: string;
+}
 interface BuilderPage {
   item: Item;
+  websiteId: string;
 }
 const BuilderPage: React.FC = () => {
   const [website, setWebsite] = useState<Item[]>([]);
@@ -40,6 +39,7 @@ const BuilderPage: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const { auth } = useAuth();
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc',) => {
     try {
@@ -51,11 +51,19 @@ const BuilderPage: React.FC = () => {
           },
         });
         const data = await response.json();
-        setWebsite(data.websites);
-        setFilterWebsite(data.websites);
+
+        const websitesWithTotalItems = await Promise.all(
+          data.websites.map(async (website: Item) => {
+            const totalItems = await fetchUrlTotal(website._id);
+            return { ...website, totalItems };
+          })
+        );
+
+        setWebsite(websitesWithTotalItems);
+        setFilterWebsite(websitesWithTotalItems);
         setTotalPages(data.totalPages);
+
         setLoading(false);
-        // console.log(data)
       } else {
         console.error('No valid auth token available');
       }
@@ -64,27 +72,27 @@ const BuilderPage: React.FC = () => {
     }
   }
 
-  // const fetchUrlTotal = async () => {
-  //   try {
-  //     if (auth && auth.api_token) {
-  //       setLoading(true);
-  //       const response = await fetch(`http://localhost:5000/api/website-urls-id`, {
-  //         method: 'GET',
-  //         headers: {
-  //           Authorization: `Bearer ${auth.api_token}`
-  //         }
-  //       });
-  //       const data = await response.json();
-  //       console.log(data);
-        
-  //     } else {
-  //       console.error('No valid auth token available');
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching website URL by ID', error);
-  //     setLoading(false);
-  //   }
-  // }
+  const fetchUrlTotal = async (websiteId: string) => {
+    try {
+      if (auth && auth.api_token) {
+        setLoading(true);
+        const response = await fetch(`http://localhost:5000/api/website-urls-id/${websiteId}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${auth.api_token}`
+          }
+        });
+        const data = await response.json();
+        return data.totalItems ?? null;
+
+      } else {
+        console.error('No valid auth token available');
+      }
+    } catch (error) {
+      console.error('Error fetching website URL by ID', error);
+      setLoading(false);
+    }
+  }
 
   // Handle page click for pagination
   const handlePageClick = (selectedPage: { selected: number }) => {
@@ -193,9 +201,16 @@ const BuilderPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  const handleError500 = () => {
+    navigate('/500Error')
+  }
+
+  const handleError400 = () => {
+    navigate('/400Error')
+  }
+
   useEffect(() => {
     getAllWebsites(currentPage, sortOrder);
-    // fetchUrlTotal();
   }, [itemsPerPage, currentPage]);
 
   return (
@@ -234,103 +249,116 @@ const BuilderPage: React.FC = () => {
               className="mb-3"
             />
           </div>
-          <Table striped bordered hover responsive="sm" className="table rounded rounded overflow-hidden">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th onClick={handleSort} className='cursor-pointer'>
-                  Name
-                  <span className='ms-1 mt-3'>
-                    {sortOrder === 'asc' ? "↑" : "↓"}
-                  </span>
-                </th>
-                <th>Url</th>
-                <th>Access_key</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array(5).fill(0).map((_, index) => (
-                  <tr key={index}>
-                    <td><Skeleton count={1} width={20} /></td>
-                    <td><Skeleton count={1} width={110} /></td>
-                    <td><Skeleton count={1} width={220} /></td>
-                    <td><Skeleton count={1} width={120} /></td>
-                    <td><Skeleton count={1} width={70} /></td>
-                    <td></td>
-                  </tr>
-                ))
-              ) : filterWebsite.length > 0 ? (
-                filterWebsite.map((item, index) => (
-                  <tr key={index} className='h-50'>
-                    <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
-                    <td>{item.name}</td>
-                    {/* <td>{item.url}</td> */}
-                    <td><Link to={`/websiteurl/${item._id}`}>
-                      {item.url}
-                    </Link>
-                    </td>
-                    <td>{item.access_key}</td>
-                    <td>
-                      <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td>
-                      <Dropdown id='tableDropdown'>
-                        <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>
-                          <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
-                        </Dropdown.Toggle>
-
-                        <Dropdown.Menu className='custom-dropdown-menu'>
-                          <Dropdown.Item as={Link} to={`/builder/update-website/${item._id}`}>
-                            <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
-                            <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
-                          </Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
-                            <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
-                            <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
-                          </Dropdown.Item>
-                          <Dropdown.Item onClick={() => getAllWebsites()}>
-                            <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
-                            <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
-                          </Dropdown.Item>
-                        </Dropdown.Menu>
-                      </Dropdown>
-                    </td>
-                  </tr>
-                ))
-              ) : (
+          <div className='overflow-x-auto '>
+            <Table striped bordered hover responsive="sm" className="table">
+              <thead>
                 <tr>
-                  <td colSpan={6} className='text-center'>Data Not Found</td>
+                  <th>No</th>
+                  <th onClick={handleSort} className='cursor-pointer'>
+                    Name
+                    <span className='ms-1 mt-3'>
+                      {sortOrder === 'asc' ? "↑" : "↓"}
+                    </span>
+                  </th>
+                  <th>Url</th>
+                  <th>Access_key</th>
+                  <th>Status</th>
+                  <th>Error 500</th>
+                  <th>Error 400</th>
+                  <th>Total Items</th>
+                  <th>Action</th>
                 </tr>
-              )
-              }
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array(5).fill(0).map((_, index) => (
+                    <tr key={index}>
+                      <td><Skeleton count={1} width={20} /></td>
+                      <td><Skeleton count={1} width={110} /></td>
+                      <td><Skeleton count={1} width={220} /></td>
+                      <td><Skeleton count={1} width={120} /></td>
+                      <td><Skeleton count={1} width={70} /></td>
+                      <td><Skeleton count={1} width={70} /></td>
+                      <td><Skeleton count={1} width={70} /></td>
+                      <td><Skeleton count={1} width={70} /></td>
+                      <td></td>
+                    </tr>
+                  ))
+                ) : filterWebsite.length > 0 ? (
+                  filterWebsite.map((item, index) => (
+                    <tr key={index} className='h-50'>
+                      <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
+                      <td>{item.name}</td>
+                      {/* <td>{item.url}</td> */}
+                      <td><Link to={`/websiteurl/${item._id}`}>
+                        {item.url}
+                      </Link>
+                      </td>
+                      <td>{item.access_key}</td>
+                      <td>
+                        <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td><button className='errorBtn' onClick={handleError500}>Click</button></td>
+                      <td><button className='errorBtn' onClick={handleError400}>Click</button></td>
+                      <td>{item.totalItems ?? 'N/A'}</td>
+                      <td>
+                        <Dropdown id='tableDropdown'>
+                          <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>
+                            <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
+                          </Dropdown.Toggle>
 
-            </tbody>
-          </Table>
-          {/* Pagination */}
+                          <Dropdown.Menu className='custom-dropdown-menu'>
+                            <Dropdown.Item as={Link} to={`/builder/update-website/${item._id}`}>
+                              <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
+                              <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
+                              <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
+                              <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => getAllWebsites()}>
+                              <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
+                              <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className='text-center'>Data Not Found</td>
+                  </tr>
+                )
+                }
+              </tbody>
+            </Table>
+            
+          </div>
           <Pagination
-            previousLabel={'Previous'}
-            nextLabel={'Next'}
-            breakLabel={'...'}
-            pageCount={totalPages}
-            marginPagesDisplayed={2}
-            pageRangeDisplayed={3}
-            onPageChange={handlePageClick}
-            containerClassName={'pagination justify-content-right'}
-            pageClassName={'page-item'}
-            pageLinkClassName={'page-link'}
-            previousClassName={'page-item'}
-            previousLinkClassName={'page-link'}
-            nextClassName={'page-item'}
-            nextLinkClassName={'page-link'}
-            breakClassName={'page-item'}
-            breakLinkClassName={'page-link'}
-            activeClassName={'active'}
-          />
+              previousLabel={'Previous'}
+              nextLabel={'Next'}
+              breakLabel={'...'}
+              pageCount={totalPages}
+              marginPagesDisplayed={2}
+              pageRangeDisplayed={3}
+              onPageChange={handlePageClick}
+              containerClassName={'pagination justify-content-right'}
+              pageClassName={'page-item'}
+              pageLinkClassName={'page-link'}
+              previousClassName={'page-item'}
+              previousLinkClassName={'page-link'}
+              nextClassName={'page-item'}
+              nextLinkClassName={'page-link'}
+              breakClassName={'page-item'}
+              breakLinkClassName={'page-link'}
+              activeClassName={'active'}
+            />
+
+          {/* Pagination */}
+
         </div>
       </Content>
     </>
