@@ -37,7 +37,7 @@ interface Website {
 const WebsiteUrlpage: React.FC = () => {
     const [filterWebsite, setFilterWebsite] = useState<WebsiteUrl[]>([]);
     const [filteredResults, setFilteredResults] = useState<WebsiteUrl[]>([]);
-    const [search, setSearch] = useState('')
+    const [search, setSearch] = useState<string>('')
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [urls, setUrls] = useState<Website[]>([]);
@@ -60,7 +60,7 @@ const WebsiteUrlpage: React.FC = () => {
                 })
                 const data = await response.json()
                 if (data && data.data) {
-                    setUrls(data.data);  
+                    setUrls(data.data);
                 } else {
                     console.error("URLs not found in data");
                 }
@@ -75,11 +75,11 @@ const WebsiteUrlpage: React.FC = () => {
         }
     }
 
-    const fetchWebsiteUrlById = async (websiteId: string, page: number = 1, itemsPerPage: number) => {
+    const fetchWebsiteUrlById = async (websiteId: string, page: number = 1, itemsPerPage: number, search: string = '') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/website-urls-id/${websiteId}?page=${page}&limit=${itemsPerPage}`, {
+                const response = await fetch(`http://localhost:5000/api/website-urls-id/${websiteId}?page=${page}&limit=${itemsPerPage}&search=${search}`, {
                     method: 'GET',
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`
@@ -193,7 +193,8 @@ const WebsiteUrlpage: React.FC = () => {
                 item.status.toLowerCase().includes(searchTerm) ||
                 item.status_code.toString().includes(searchTerm) ||
                 item.depth.toString().includes(searchTerm) ||
-                item.parent_url.toLowerCase().includes(searchTerm)
+                item.parent_url.toLowerCase().includes(searchTerm) ||
+                item.is_archived.toString().includes(searchTerm)
             );
             setFilteredResults(results);
         }
@@ -205,7 +206,7 @@ const WebsiteUrlpage: React.FC = () => {
                 return 'status-complete';
             case 'Error':
                 return 'status-error';
-            case 'Active':
+            case 'Rendered':
                 return 'status-active';
             case 'Inactive':
                 return 'status-inactive';
@@ -236,7 +237,7 @@ const WebsiteUrlpage: React.FC = () => {
         if (urls.length > 0 && id) {
             const url = urls.find((url) => url._id === id);
             if (url) {
-                setSelectedUrl(url.url); 
+                setSelectedUrl(url.url);
             }
         }
     }, [urls, id]);
@@ -298,8 +299,8 @@ const WebsiteUrlpage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto'>
-                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table"  style={{ minWidth: '100%' }}>
+                    <div className='overflow-x-auto shadow-sm mb-4'>
+                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table overflow-hidden rounded" style={{ minWidth: '100%' }}>
                             <thead>
                                 <tr>
                                     <th>Website Id</th>
@@ -345,7 +346,7 @@ const WebsiteUrlpage: React.FC = () => {
                                             <td>{new Date(item.last_render_at).toLocaleString()}</td>
                                             <td>{new Date(item.created_at).toLocaleString()}</td>
                                             <td>{item.depth}</td>
-                                            <td>{item.is_archived ? 'Yes' : 'No'}</td>
+                                            <td>{item.is_archived ? 'true' : 'false'}</td>
                                             <td>
                                                 {item.headers && Object.keys(item.headers).map((key) => (
                                                     <div key={key}>
@@ -356,7 +357,7 @@ const WebsiteUrlpage: React.FC = () => {
                                             <td><a href={item.parent_url} target='_blank' rel='noopener noreferrer'>{item.parent_url}</a></td>
                                             <td>{item.status_code}</td>
                                             <td>
-                                                <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive')}`}>
+                                                <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive' | 'Rendered')}`}>
                                                     {item.status}
                                                 </span>
                                             </td>

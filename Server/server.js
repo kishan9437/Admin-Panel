@@ -10,6 +10,8 @@ const crawlErrorRouter = require('./routes/admin/CrawlError-router');
 const error500websiteRouter = require('./routes/admin/error500Websites-routes')
 const error400websiteRouter = require('./routes/admin/error400Website-routes')
 const crawlsessionRouter = require('./routes/admin/CrawlSession-routes')
+const chartRouter = require('./routes/admin/Chart-routes')
+const pageRenderRouter = require('./routes/admin/PageRender-routes')
 const cookieParser=require('cookie-parser');
 const cors=require('cors');
 
@@ -38,6 +40,11 @@ app.use('/api',error500websiteRouter)
 app.use('/api',error400websiteRouter)
 
 app.use('/api',crawlsessionRouter)
+
+app.use('/api',chartRouter)
+
+app.use('/api',pageRenderRouter)
+
 const PORT=5000;
 connectDB().then(()=>{
     app.listen(PORT,()=>{

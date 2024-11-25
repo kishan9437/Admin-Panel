@@ -1,9 +1,9 @@
-import {useEffect, useRef, FC} from 'react'
-import ApexCharts, {ApexOptions} from 'apexcharts'
-import {KTIcon, toAbsoluteUrl} from '../../../helpers'
-import {getCSSVariableValue} from '../../../assets/ts/_utils'
-import {Dropdown1} from '../../content/dropdown/Dropdown1'
-import {useThemeMode} from '../../layout/theme-mode/ThemeModeProvider'
+import { useEffect, useRef, FC, useState } from 'react'
+import ApexCharts, { ApexOptions } from 'apexcharts'
+import { KTIcon, toAbsoluteUrl } from '../../../helpers'
+import { getCSSVariableValue } from '../../../assets/ts/_utils'
+import { Dropdown1 } from '../../content/dropdown/Dropdown1'
+import { useThemeMode } from '../../layout/theme-mode/ThemeModeProvider'
 
 type Props = {
   className: string
@@ -11,15 +11,52 @@ type Props = {
   chartHeight: string
 }
 
-const MixedWidget8: FC<Props> = ({className, chartColor, chartHeight}) => {
+const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
   const chartRef = useRef<HTMLDivElement | null>(null)
-  const {mode} = useThemeMode()
+  const { mode } = useThemeMode()
+  const [chartData, setChartData] = useState<{ data: number[], categories: string[] }>({
+    data: [],
+    categories: [],
+  })
+
+  const [dataType, setDataType] = useState<'daily' | 'monthly' | 'yearly'>('daily') // Default to daily data
+
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        const response = await fetch('')
+        const json = await response.json()
+
+        if (json.status === 'success') {
+          const data = json.data[dataType]
+
+          const categories = dataType === 'daily'
+            ? data.details.map((item: { date: string }) => item.date)
+            : dataType === 'monthly'
+              ? data.details.map((item: { month: string }) => item.month)
+              : data.details.map((item: { year: number }) => item.year.toString())
+
+          const values = data.details.map((item: { value: number }) => item.value)
+
+          setChartData({
+            data: values,
+            categories: categories,
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch chart data:', error)
+      }
+    }
+
+    fetchChartData()
+  }, [dataType])
+
   const refreshChart = () => {
     if (!chartRef.current) {
       return
     }
 
-    const chart1 = new ApexCharts(chartRef.current, chart1Options(chartColor, chartHeight))
+    const chart1 = new ApexCharts(chartRef.current, chart1Options(chartColor, chartHeight, chartData))
     if (chart1) {
       chart1.render()
     }
@@ -35,8 +72,7 @@ const MixedWidget8: FC<Props> = ({className, chartColor, chartHeight}) => {
         chart1.destroy()
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartRef, mode])
+  }, [chartRef, mode, chartData])
 
   return (
     <div className={`card ${className}`}>
@@ -49,18 +85,14 @@ const MixedWidget8: FC<Props> = ({className, chartColor, chartHeight}) => {
         </h3>
 
         <div className='card-toolbar'>
-          {/* begin::Menu */}
-          <button
-            type='button'
-            className='btn btn-sm btn-icon btn-color-primary btn-active-light-primary'
-            data-kt-menu-trigger='click'
-            data-kt-menu-placement='bottom-end'
-            data-kt-menu-flip='top-end'
+          <select
+            className='form-select form-select-sm'
+            onChange={(e) => setDataType(e.target.value as 'daily' | 'monthly' | 'yearly')}
           >
-            <KTIcon iconName='category' className='fs-2' />
-          </button>
-          <Dropdown1 />
-          {/* end::Menu */}
+            <option value='daily'>Daily</option>
+            <option value='monthly'>Monthly</option>
+            <option value='yearly'>Yearly</option>
+          </select>
         </div>
       </div>
       {/* end::Header */}
@@ -180,7 +212,7 @@ const MixedWidget8: FC<Props> = ({className, chartColor, chartHeight}) => {
   )
 }
 
-const chart1Options = (chartColor: string, chartHeight: string): ApexOptions => {
+const chart1Options = (chartColor: string, chartHeight: string, chartData: { data: number[]; categories: string[] }): ApexOptions => {
   const labelColor = getCSSVariableValue('--bs-gray-800')
   const strokeColor = getCSSVariableValue('--bs-gray-300')
   const baseColor = getCSSVariableValue('--bs-' + chartColor) as string
@@ -189,8 +221,8 @@ const chart1Options = (chartColor: string, chartHeight: string): ApexOptions => 
   return {
     series: [
       {
-        name: 'Net Profit',
-        data: [30, 30, 60, 25, 25, 40],
+        name: 'Values',
+        data: chartData.data,
       },
     ],
     chart: {
@@ -239,7 +271,7 @@ const chart1Options = (chartColor: string, chartHeight: string): ApexOptions => 
       colors: [baseColor],
     },
     xaxis: {
-      categories: ['Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+      categories: chartData.categories,
       axisBorder: {
         show: false,
       },
@@ -273,7 +305,7 @@ const chart1Options = (chartColor: string, chartHeight: string): ApexOptions => 
     },
     yaxis: {
       min: 0,
-      max: 65,
+      // max: Math.max(...chartData.data) + 10 || 100,
       labels: {
         show: false,
         style: {
@@ -322,4 +354,4 @@ const chart1Options = (chartColor: string, chartHeight: string): ApexOptions => 
   }
 }
 
-export {MixedWidget8}
+export { MixedWidget8 }

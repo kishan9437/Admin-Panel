@@ -1,4 +1,5 @@
 const CrawlSession = require('../../models/crawlSession')
+const mongoose = require('mongoose');
 
 const addCrawlSession = async (req, res) => {
     try {
@@ -18,10 +19,20 @@ const getCrawlSession = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const skip = (page - 1) * limit;
-        const totalCrawlSession = await CrawlSession.countDocuments();
+        const search = req.query.search || '';
 
-        const crawlSession = await CrawlSession.find({}).skip(skip).limit(limit);
+        const filter = {
+            $or:[
+                ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search}]: []),
+                { status: new RegExp(search, 'i') },
+                ...(Number.isInteger(Number(search)) ? [{ crawl_depth: search }] : []),
+            ] 
+        }
+
+        const skip = (page - 1) * limit;
+        const totalCrawlSession = await CrawlSession.countDocuments(filter);
+
+        const crawlSession = await CrawlSession.find(filter).skip(skip).limit(limit);
         res.status(200).json({
             success: true,
             items: crawlSession,

@@ -24,18 +24,18 @@ interface Activity {
 const ActivityPage: React.FC = () => {
     const { auth } = useAuth();
     const [activities, setActivities] = useState<Activity[]>([]);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState<string>('');
     const [filterActivity, setFilterActivity] = useState<Activity[]>([]);
     const [itemsPerPage, setItemsPerPage] = useState(5);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const getActivity = async (page: number = 1) => {
+    const getActivity = async (page: number = 1,search: string='') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/activities?page=${page}&limit=${itemsPerPage}`, {
+                const response = await fetch(`http://localhost:5000/api/activities?page=${page}&limit=${itemsPerPage}&search=${search}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -62,21 +62,7 @@ const ActivityPage: React.FC = () => {
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const searchTerm = e.target.value.toLowerCase();
-        setSearch(searchTerm);
-
-        if (searchTerm === '') {
-            setFilterActivity(activities);
-        } else {
-            const results = activities.filter(item =>
-                item.url_id.toString().includes(searchTerm) ||
-                item.page_size.toString().includes(searchTerm) ||
-                item.status.toLowerCase().includes(searchTerm) ||
-                item.error.toLowerCase().includes(searchTerm) ||
-                item.last_render_at.toString().includes(searchTerm)
-            );
-            setFilterActivity(results);
-        }
+        setSearch(e.target.value)
     }
 
     const getStatusClass = (status: string): string => {
@@ -151,8 +137,8 @@ const ActivityPage: React.FC = () => {
     }
 
     useEffect(() => {
-        getActivity(currentPage);
-    }, [itemsPerPage, currentPage])
+        getActivity(currentPage,search);
+    }, [itemsPerPage, currentPage,search])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
@@ -186,8 +172,8 @@ const ActivityPage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <Table striped bordered hover responsive="sm" className="table">
+                    <div className='overflow-x-auto shadow-sm mb-4'>
+                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
                             <thead>
                                 <tr>
                                     <th>Url Id</th>

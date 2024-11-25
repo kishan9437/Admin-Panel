@@ -11,6 +11,7 @@ type Props = {
 const ChartsWidget5: FC<Props> = ({className}) => {
   const chartRef = useRef<HTMLDivElement | null>(null)
   const {mode} = useThemeMode()
+  
   const refreshChart = () => {
     if (!chartRef.current) {
       return

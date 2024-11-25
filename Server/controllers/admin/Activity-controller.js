@@ -1,5 +1,6 @@
 const PrerenderActivity = require('../../models/Activity')
 const WebsiteUrl = require('../../models/WebsiteUrl');
+const mongoose = require('mongoose');
 
 const addActivity = async (req, res) => {
     try {
@@ -19,10 +20,21 @@ const getActivity = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const skip = (page - 1) * limit;
-        const totalActivity = await PrerenderActivity.countDocuments();  
+        const search = req.query.search || '';
 
-        const activity = await PrerenderActivity.find({}).skip(skip).limit(limit);
+        const filter = {
+            $or:[
+                ...(mongoose.Types.ObjectId.isValid(search) ? [{ url_id: search}]: []),
+                { status: new RegExp(search, 'i') },
+                { error: new RegExp(search, 'i') },
+                ...(Number.isInteger(Number(search)) ? [{ page_size: search }] : [])
+            ] 
+        }
+
+        const skip = (page - 1) * limit;
+        const totalActivity = await PrerenderActivity.countDocuments(filter);  
+
+        const activity = await PrerenderActivity.find(filter).skip(skip).limit(limit);
         res.status(200).json({
             success: true,
             items: activity,

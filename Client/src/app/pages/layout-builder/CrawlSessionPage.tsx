@@ -24,18 +24,18 @@ interface crawlSession {
 const CrawlSessionPage: React.FC = () => {
     const { auth } = useAuth();
     const [crawlSession, setCrawlSession] = useState<crawlSession[]>([]);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState<string>('');
     const [filterCrawlSession, setFilterCrawlSession] = useState<crawlSession[]>([]);
     const [itemsPerPage, setItemsPerPage] = useState(5);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const getCrawlSession = async (page: number = 1) => {
+    const getCrawlSession = async (page: number = 1 , search:string='') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/get-crawlsession?page=${page}&limit=${itemsPerPage}`, {
+                const response = await fetch(`http://localhost:5000/api/get-crawlsession?page=${page}&limit=${itemsPerPage}&search=${search}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -62,22 +62,7 @@ const CrawlSessionPage: React.FC = () => {
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const searchTerm = e.target.value.toLowerCase();
-        setSearch(searchTerm);
-
-        if (searchTerm === '') {
-            setFilterCrawlSession(crawlSession);
-        } else {
-            const results = crawlSession.filter(item =>
-                // item.website_id.toString().includes(searchTerm) ||
-                item.website_id.toLowerCase().includes(searchTerm) ||
-                item.crawl_depth.toString().includes(searchTerm) ||
-                item.status.toLowerCase().includes(searchTerm) ||
-                item.start_time.toLowerCase().includes(searchTerm) ||
-                item.last_updated_time.toLowerCase().includes(searchTerm)
-            );
-            setFilterCrawlSession(results);
-        }
+        setSearch(e.target.value);
     }
 
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -156,8 +141,8 @@ const CrawlSessionPage: React.FC = () => {
     };
 
     useEffect(() => {
-        getCrawlSession(currentPage);
-    }, [itemsPerPage, currentPage])
+        getCrawlSession(currentPage,search);
+    }, [itemsPerPage, currentPage,search])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
@@ -191,8 +176,8 @@ const CrawlSessionPage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto'>
-                        <Table striped bordered hover responsive="sm" className="table">
+                    <div className='overflow-x-auto shadow-sm mb-4'>
+                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
                             <thead>
                                 <tr>
                                     {/* <th>Website Id</th> */}

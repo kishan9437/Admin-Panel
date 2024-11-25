@@ -11,6 +11,7 @@ export function Account() {
     setData(updatedData)
   }
 
+  console.log(data)
   return (
     <div className='card'>
       {/* begin::Form */}

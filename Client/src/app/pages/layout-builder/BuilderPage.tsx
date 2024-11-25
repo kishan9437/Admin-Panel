@@ -31,7 +31,7 @@ interface BuilderPage {
 }
 const BuilderPage: React.FC = () => {
   const [website, setWebsite] = useState<Item[]>([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState<string>('');
   const [filterWebsite, setFilterWebsite] = useState<Item[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -39,13 +39,14 @@ const BuilderPage: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const { auth } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState<number>(1)
   const navigate = useNavigate();
 
-  const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc',) => {
+  const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc', search: string = '') => {
     try {
       if (auth && auth.api_token) {
         setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order=${order}`, {
+        const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order=${order}&search=${search}`, {
           headers: {
             Authorization: `Bearer ${auth.api_token}`,
           },
@@ -101,24 +102,29 @@ const BuilderPage: React.FC = () => {
     getAllWebsites(selectedPageNumber);
   };
 
-  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.trim().toLowerCase()
-    setSearch(value);
+  // const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+  //   const value = event.target.value.trim().toLowerCase()
+  //   setSearch(value);
 
-    if (value === "") {
-      setFilterWebsite(website);
-    }
-    else {
-      const searchTerm = value.split(' ');
-      const filtered = website.filter((user) => {
-        return searchTerm.some((term) =>
-          user.name.toLowerCase().includes(term) ||
-          user.url.toLowerCase().includes(term)
-        )
-      });
-      setFilterWebsite(filtered)
-    }
-  };
+  //   if (value === "") {
+  //     setFilterWebsite(website);
+  //   }
+  //   else {
+  //     const searchTerm = value.split(' ');
+  //     const filtered = website.filter((user) => {
+  //       return searchTerm.some((term) =>
+  //         user.name.toLowerCase().includes(term) ||
+  //         user.url.toLowerCase().includes(term)
+  //       )
+  //     });
+  //     setFilterWebsite(filtered)
+  //   }
+  // };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1)
+  }
 
   const handleSort = () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
@@ -210,8 +216,8 @@ const BuilderPage: React.FC = () => {
   }
 
   useEffect(() => {
-    getAllWebsites(currentPage, sortOrder);
-  }, [itemsPerPage, currentPage]);
+    getAllWebsites(currentPage, sortOrder, search);
+  }, [itemsPerPage, currentPage, search]);
 
   return (
     <>
@@ -249,11 +255,11 @@ const BuilderPage: React.FC = () => {
               className="mb-3"
             />
           </div>
-          <div className='overflow-x-auto '>
-            <Table striped bordered hover responsive="sm" className="table">
+          <div className='overflow-x-auto shadow-sm mb-4'>
+            <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
               <thead>
                 <tr>
-                  <th>No</th>
+                  {/* <th>No</th> */}
                   <th onClick={handleSort} className='cursor-pointer'>
                     Name
                     <span className='ms-1 mt-3'>
@@ -273,9 +279,9 @@ const BuilderPage: React.FC = () => {
                 {loading ? (
                   Array(5).fill(0).map((_, index) => (
                     <tr key={index}>
-                      <td><Skeleton count={1} width={20} /></td>
-                      <td><Skeleton count={1} width={110} /></td>
-                      <td><Skeleton count={1} width={220} /></td>
+                      {/* <td><Skeleton count={1} width={20} /></td> */}
+                      <td><Skeleton count={1} width={70} /></td>
+                      <td><Skeleton count={1} width={200} /></td>
                       <td><Skeleton count={1} width={120} /></td>
                       <td><Skeleton count={1} width={70} /></td>
                       <td><Skeleton count={1} width={70} /></td>
@@ -287,7 +293,7 @@ const BuilderPage: React.FC = () => {
                 ) : filterWebsite.length > 0 ? (
                   filterWebsite.map((item, index) => (
                     <tr key={index} className='h-50'>
-                      <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td>
+                      {/* <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td> */}
                       <td>{item.name}</td>
                       {/* <td>{item.url}</td> */}
                       <td><Link to={`/websiteurl/${item._id}`}>
@@ -329,15 +335,16 @@ const BuilderPage: React.FC = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className='text-center'>Data Not Found</td>
+                    <td colSpan={9} className='text-center'>Data Not Found</td>
                   </tr>
                 )
                 }
               </tbody>
             </Table>
-            
+
           </div>
-          <Pagination
+          {filterWebsite.length > 0 && (
+            <Pagination
               previousLabel={'Previous'}
               nextLabel={'Next'}
               breakLabel={'...'}
@@ -356,6 +363,7 @@ const BuilderPage: React.FC = () => {
               breakLinkClassName={'page-link'}
               activeClassName={'active'}
             />
+          )}
 
           {/* Pagination */}
 

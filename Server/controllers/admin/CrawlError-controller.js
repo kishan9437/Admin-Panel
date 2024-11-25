@@ -1,4 +1,5 @@
 const CrawlError = require('../../models/crawlError')
+const mongoose = require('mongoose');
 
 const addCrawlError = async (req, res) => {
     try {
@@ -18,10 +19,22 @@ const getCrawlError = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const skip = (page - 1) * limit;
-        const totalCrawlError = await CrawlError.countDocuments();
+        const search = req.query.search || '';
 
-        const crawlError = await CrawlError.find({}).skip(skip).limit(limit);
+        const filter = {
+            $or:[
+                ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search}]: []),
+                { url: new RegExp(search, 'i') },
+                { source_url: new RegExp(search, 'i') },
+                { error_message: new RegExp(search, 'i') },
+                { error_type: new RegExp(search, 'i') },
+            ] 
+        }
+
+        const skip = (page - 1) * limit;
+        const totalCrawlError = await CrawlError.countDocuments(filter);
+
+        const crawlError = await CrawlError.find(filter).skip(skip).limit(limit);
         res.status(200).json({
             success: true,
             items: crawlError,

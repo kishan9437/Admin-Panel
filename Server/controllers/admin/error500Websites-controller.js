@@ -1,4 +1,5 @@
 const Error500Website = require('../../models/error500Websites')
+const mongoose = require('mongoose');
 
 const addError500Website = async (req, res) => {
     try {
@@ -18,10 +19,23 @@ const getError500website = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const skip = (page - 1) * limit;
-        const totalError500Website = await Error500Website.countDocuments();
+        const search = req.query.search || '';
 
-        const error500Website = await Error500Website.find({}).skip(skip).limit(limit);
+        const filter = {
+            $or:[
+                ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search}]: []),
+                { website_url: new RegExp(search, 'i') },
+                { error_message: new RegExp(search, 'i') },
+                { error_type: new RegExp(search,'i')},
+                ...(Number.isInteger(Number(search)) ? [{ status_code: search }] : []),
+                ...(Number.isInteger(Number(search)) ? [{ retry_attempts: search }] : [])
+            ] 
+        }
+
+        const skip = (page - 1) * limit;
+        const totalError500Website = await Error500Website.countDocuments(filter);
+
+        const error500Website = await Error500Website.find(filter).skip(skip).limit(limit);
         res.status(200).json({
             success: true,
             items: error500Website,

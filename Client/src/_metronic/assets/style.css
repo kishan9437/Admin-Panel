@@ -23,7 +23,8 @@
     width: 100%;
     text-align: center;
     background: whitesmoke;
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.2);
+    margin-bottom: auto !important;
+    /* box-shadow: 0 1px 8px rgba(0, 0, 0, 0.2); */
     border-radius: 5px !important;
 }
 

@@ -27,18 +27,18 @@ interface error500 {
 const Error500WebsitePage: React.FC = () => {
     const { auth } = useAuth();
     const [error500, setError500] = useState<error500[]>([]);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState<string>('');
     const [filterError500, setFilterError500] = useState<error500[]>([]);
     const [itemsPerPage, setItemsPerPage] = useState(5);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const getError500 = async (page: number = 1) => {
+    const getError500 = async (page: number = 1, search:string='') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/get-error500website?page=${page}&limit=${itemsPerPage}`, {
+                const response = await fetch(`http://localhost:5000/api/get-error500website?page=${page}&limit=${itemsPerPage}&search=${search}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -65,23 +65,7 @@ const Error500WebsitePage: React.FC = () => {
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const searchTerm = e.target.value.toLowerCase();
-        setSearch(searchTerm);
-
-        if (searchTerm === '') {
-            setFilterError500(error500);
-        } else {
-            const results = error500.filter(item =>
-                item.website_id.toString().includes(searchTerm) ||
-                item.website_url.toLowerCase().includes(searchTerm) ||
-                item.error_message.toString().includes(searchTerm) ||
-                item.error_type.toLowerCase().includes(searchTerm) ||
-                item.status_code.toString().includes(searchTerm) || 
-                item.retry_attempts.toString().includes(searchTerm) ||
-                item.timestamp.toLowerCase().includes(searchTerm)
-            );
-            setFilterError500(results);
-        }
+        setSearch(e.target.value);
     }
 
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -145,8 +129,8 @@ const Error500WebsitePage: React.FC = () => {
     }
 
     useEffect(() => {
-        getError500(currentPage);
-    }, [itemsPerPage, currentPage])
+        getError500(currentPage,search);
+    }, [itemsPerPage, currentPage,search])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
@@ -180,8 +164,8 @@ const Error500WebsitePage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto'>
-                        <Table striped bordered hover responsive="sm" className="table">
+                    <div className='overflow-x-auto shadow-sm mb-4'>
+                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
                             <thead>
                                 <tr>
                                     <th>Website Id</th>

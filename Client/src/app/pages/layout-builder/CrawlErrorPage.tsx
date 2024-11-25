@@ -25,18 +25,18 @@ interface crawlError {
 const CrawlErrorPage: React.FC = () => {
     const { auth } = useAuth();
     const [crawlError, setCrawlError] = useState<crawlError[]>([]);
-    const [search, setSearch] = useState('');
+    const [search, setSearch] = useState<string>('');
     const [filterCrawlError, setFilterCrawlError] = useState<crawlError[]>([]);
     const [itemsPerPage, setItemsPerPage] = useState(5);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const getCrawlError = async (page: number = 1) => {
+    const getCrawlError = async (page: number = 1, search: string='') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/get-crawlError?page=${page}&limit=${itemsPerPage}`, {
+                const response = await fetch(`http://localhost:5000/api/get-crawlError?page=${page}&limit=${itemsPerPage}&search=${search}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -63,21 +63,7 @@ const CrawlErrorPage: React.FC = () => {
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const searchTerm = e.target.value.toLowerCase();
-        setSearch(searchTerm);
-
-        if (searchTerm === '') {
-            setFilterCrawlError(crawlError);
-        } else {
-            const results = crawlError.filter(item =>
-                item.website_id.toString().includes(searchTerm) ||
-                item.url.toLowerCase().includes(searchTerm) ||
-                item.error_message.toLowerCase().includes(searchTerm) ||
-                item.error_type.toLowerCase().includes(searchTerm) ||
-                item.created_at.toString().includes(searchTerm)
-            );
-            setFilterCrawlError(results);
-        }
+        setSearch(e.target.value)
     }
 
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -141,8 +127,8 @@ const CrawlErrorPage: React.FC = () => {
     }
 
     useEffect(() => {
-        getCrawlError(currentPage);
-    }, [itemsPerPage, currentPage])
+        getCrawlError(currentPage,search);
+    }, [itemsPerPage, currentPage,search])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
@@ -176,8 +162,8 @@ const CrawlErrorPage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto'>
-                        <Table striped bordered hover responsive="sm" className="table">
+                    <div className='overflow-x-auto shadow-sm mb-4'>
+                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
                             <thead>
                                 <tr>
                                     <th>website Id</th>

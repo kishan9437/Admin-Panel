@@ -1,10 +1,11 @@
 
-import {useEffect, useRef, FC} from 'react'
+import {useEffect, useRef, FC, useState} from 'react'
 import ApexCharts, {ApexOptions} from 'apexcharts'
 import {KTIcon} from '../../../helpers'
 import {Dropdown1} from '../../content/dropdown/Dropdown1'
 import {getCSS, getCSSVariableValue} from '../../../assets/ts/_utils'
 import {useThemeMode} from '../../layout/theme-mode/ThemeModeProvider'
+import axios from 'axios'
 
 type Props = {
   className: string
@@ -14,6 +15,14 @@ const ChartsWidget1: FC<Props> = ({className}) => {
   const chartRef = useRef<HTMLDivElement | null>(null)
   const {mode} = useThemeMode()
 
+  const [chartData, setChartData] = useState<ChartData>({
+    series: [
+      {name: 'Net Profit', data: []},
+      {name: 'Revenue', data: []},
+    ],
+    categories: [],
+  })
+
   useEffect(() => {
     const chart = refreshChart()
 
@@ -22,7 +31,7 @@ const ChartsWidget1: FC<Props> = ({className}) => {
         chart.destroy()
       }
     }
-  }, [chartRef, mode])
+  }, [chartRef, mode,chartData])
 
   const refreshChart = () => {
     if (!chartRef.current) {
@@ -31,13 +40,34 @@ const ChartsWidget1: FC<Props> = ({className}) => {
 
     const height = parseInt(getCSS(chartRef.current, 'height'))
 
-    const chart = new ApexCharts(chartRef.current, getChartOptions(height))
+    const chart = new ApexCharts(chartRef.current, getChartOptions(height,chartData))
     if (chart) {
       chart.render()
     }
 
     return chart
   }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/websites') 
+        const data = response.data
+
+        setChartData({
+          series: [
+            {name: 'Net Profit', data: data.netProfit},
+            {name: 'Revenue', data: data.revenue},
+          ],
+          categories: data.categories,
+        })
+      } catch (error) {
+        console.error('Error fetching chart data:', error)
+      }
+    }
+
+    fetchData()
+  }, [])
 
   return (
     <div className={`card ${className}`}>
@@ -83,23 +113,19 @@ const ChartsWidget1: FC<Props> = ({className}) => {
 
 export {ChartsWidget1}
 
-function getChartOptions(height: number): ApexOptions {
+interface ChartData {
+  series: { name: string; data: number[] }[];
+  categories: string[];
+}
+
+function getChartOptions(height: number , chartData: ChartData = { series: [], categories: [] }): ApexOptions {
   const labelColor = getCSSVariableValue('--bs-gray-500')
   const borderColor = getCSSVariableValue('--bs-gray-200')
   const baseColor = getCSSVariableValue('--bs-primary')
   const secondaryColor = getCSSVariableValue('--bs-gray-300')
 
   return {
-    series: [
-      {
-        name: 'Net Profit',
-        data: [44, 55, 57, 56, 61, 58],
-      },
-      {
-        name: 'Revenue',
-        data: [76, 85, 101, 98, 87, 105],
-      },
-    ],
+    series: chartData.series,
     chart: {
       fontFamily: 'inherit',
       type: 'bar',
