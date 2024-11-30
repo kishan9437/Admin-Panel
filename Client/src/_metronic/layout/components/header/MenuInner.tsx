@@ -12,8 +12,8 @@ export function MenuInner() {
       <MenuItem title='WebsitesUrl' to='/websiteurl'/>
       <MenuItem title='Activity' to='/activity'/>
       <MenuItem title='CrawlError' to='/crawlerror'/>
-      <MenuItem title='Error500' to='/500Error'/>
-      <MenuItem title='Error400' to='/400Error'/>
+      {/* <MenuItem title=''  to='/500Erro'/> */}
+      {/* <MenuItem title='Error400' to='/400Error'/> */}
       <MenuItem title='CrawlSession' to='/crawlsession'/>
 
       {/* <MenuInnerWithSub

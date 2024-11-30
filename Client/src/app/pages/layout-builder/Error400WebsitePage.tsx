@@ -11,16 +11,18 @@ import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { useSearchParams } from 'react-router-dom'
 
 interface error400 {
-    website_url:string;
+    website_url: string;
     status_code: string;
     error_message: string;
     error_type: string;
     retry_attempts: string;
     resolved: string;
     timestamp: string;
-    _id:string;
+    website_id: string;
+    _id: string;
 }
 
 const Error400WebsitePage: React.FC = () => {
@@ -28,12 +30,15 @@ const Error400WebsitePage: React.FC = () => {
     const [error400, setError400] = useState<error400[]>([]);
     const [search, setSearch] = useState<string>('');
     const [filterError400, setFilterError400] = useState<error400[]>([]);
-    const [itemsPerPage, setItemsPerPage] = useState(5);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [searchParams] = useSearchParams()
+    const id = searchParams.get('id')
+    const [currentUrl, setCurrentUrl] = useState<string | null>(null)
 
-    const getError400 = async (page: number = 1, search:string='') => {
+    const getError400 = async (page: number = 1, search: string = '') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
@@ -45,9 +50,17 @@ const Error400WebsitePage: React.FC = () => {
                 const data = await response.json();
                 // console.log('Fetched activities:', data);
                 setError400(data.items);
-                setFilterError400(data.items);
-                setTotalPages(data.totalPages)
+                // setFilterError400(data.items);
+                
+                if(id){
+                    const filtered=data.items.filter((item: error400)=>item.website_id===id)
 
+                    if(filtered.length>0){
+                        setCurrentUrl(filtered[0].website_url);
+                    }
+                    setFilterError400(filtered)
+                    setTotalPages(Math.ceil(filtered.length / itemsPerPage))
+                }
                 setLoading(false);
             } else {
                 console.error('No valid auth token available');
@@ -128,14 +141,14 @@ const Error400WebsitePage: React.FC = () => {
     }
 
     useEffect(() => {
-        getError400(currentPage,search);
-    }, [itemsPerPage, currentPage,search])
+        getError400(currentPage, search);
+    }, [itemsPerPage, currentPage, search])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
                 <div id="kt_toolbar_container" className="container d-flex flex-stack">
                     <div className="page-title d-flex flex-column">
-                        <h1 className="d-flex text-white fw-bold my-1 fs-3">Error400Website</h1>
+                        <h1 className="d-flex text-white fw-bold my-1 fs-3">{currentUrl}</h1>
                     </div>
                     {/* <div className="d-flex align-items-center py-1">
                         <Link to='' className="btn bg-body btn-active-color-primary" id="kt_toolbar_primary_button" data-bs-theme="light">New</Link>
@@ -168,6 +181,7 @@ const Error400WebsitePage: React.FC = () => {
                             <thead>
                                 <tr>
                                     {/* <th>Website Id</th> */}
+                                    <th>Website Id</th>
                                     <th>Website url</th>
                                     <th>Status Code</th>
                                     <th>Error Message</th>
@@ -183,6 +197,7 @@ const Error400WebsitePage: React.FC = () => {
                                         Array(5).fill(0).map((_, index) => (
                                             <tr key={index}>
                                                 <td><Skeleton count={1} width={180} /></td>
+                                                <td><Skeleton count={1} width={180} /></td>
                                                 <td><Skeleton count={1} width={80} /></td>
                                                 <td><Skeleton count={1} width={80} /></td>
                                                 <td><Skeleton count={1} width={100} /></td>
@@ -195,7 +210,7 @@ const Error400WebsitePage: React.FC = () => {
                                         filterError400.length > 0 ? (
                                             filterError400.map((item, index) => (
                                                 <tr key={index} className='h-50'>
-                                                    {/* <td>{item.website_id}</td> */}
+                                                    <td>{item.website_id}</td>
                                                     <td>{item.website_url}</td>
                                                     <td>{item.status_code}</td>
                                                     <td>{item.error_message}</td>

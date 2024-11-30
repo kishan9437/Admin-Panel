@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Table from 'react-bootstrap/Table'
 import Form from 'react-bootstrap/Form'
 import Pagination from 'react-paginate'
@@ -8,10 +8,13 @@ import { faEdit, faEllipsisH, faSync, faTrash } from '@fortawesome/free-solid-sv
 import { useAuth } from '../../modules/auth'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
-import { Dropdown } from 'react-bootstrap'
+import { Button, Dropdown } from 'react-bootstrap'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useNavigate } from 'react-router-dom'
+import Modal from 'bootstrap/js/dist/modal';
+
+
 
 interface Item {
   _id: string;
@@ -19,6 +22,7 @@ interface Item {
   name: string,
   status: string,
   url: string;
+  website_id: string,
   totalItems?: number;
 }
 
@@ -36,10 +40,17 @@ const BuilderPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const { auth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState<number>(1)
+  const [name, setName] = useState<string>('');
+  const [url, setURL] = useState<string>('');
+  const [nameUpdate, setNameUpdate] = useState<string>('');
+  const [urlUpdate, setURLUpdate] = useState<string>('');
+  const [currentId, setCurrentId] = useState<string | null>(null)
+  const modalRef = useRef<HTMLDivElement | null>(null)
+
   const navigate = useNavigate();
 
   const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc', search: string = '') => {
@@ -84,6 +95,7 @@ const BuilderPage: React.FC = () => {
           }
         });
         const data = await response.json();
+        // console.log(data);
         return data.totalItems ?? null;
 
       } else {
@@ -207,12 +219,134 @@ const BuilderPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleError500 = () => {
-    navigate('/500Error')
+  const handleError500 = (id: string) => {
+    navigate(`/500Error?id=${id}`)
   }
 
-  const handleError400 = () => {
-    navigate('/400Error')
+  const handleError400 = (id: string) => {
+    navigate(`/400Error?id=${id}`)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (auth && auth.api_token) {
+        const response = await fetch('http://localhost:5000/api/add-website', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${auth.api_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, url })
+        })
+        const newWebsite = await response.json();
+
+        if (response.ok) {
+          Swal.fire({
+            position: 'center',
+            icon: 'success',
+            title: 'Success',
+            text: 'Data Added successfully',
+            confirmButtonText: "OK"
+          }).then(() => {
+            setName('');
+            setURL('');
+            getAllWebsites();
+            // navigate('/builder')
+          })
+        }
+        else {
+          Swal.fire({
+            position: 'center',
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to add data',
+            confirmButtonText: "OK"
+          })
+        }
+      }
+      else {
+        console.error('No valid auth token available');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  const getWebsiteData = async (id: string) => {
+    try {
+      if (auth && auth.api_token) {
+        const response = await fetch(`http://localhost:5000/api/websites/${id}`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${auth.api_token}`
+          }
+        });
+        const items = await response.json();
+        setNameUpdate(items.data.name);
+        setURLUpdate(items.data.url);
+      }
+      else {
+        console.error('No valid auth token available');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  const handleEditClick = (id: string) => {
+    setCurrentId(id);
+    getWebsiteData(id);
+    if (modalRef.current) {
+      const modal = new Modal(modalRef.current);
+      modal.show();
+    }
+  }
+
+  const handleUpdateWebsite = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    try {
+      if (auth && auth.api_token && currentId) {
+        const response = await fetch(`http://localhost:5000/api/website/update/${currentId}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${auth.api_token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: nameUpdate,
+            url: urlUpdate
+          })
+        })
+        // const result= await response.json();
+        if (response.ok) {
+          Swal.fire({
+            position: 'center',
+            title: 'Success!',
+            text: 'Data updated successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+          }).then(() => getAllWebsites());
+        }
+        else {
+          console.error('Error updating websites', response.statusText);
+          Swal.fire({
+            position: 'center',
+            title: 'Error!',
+            text: 'Error updating data. Please try again',
+            icon: 'error',
+            confirmButtonText: 'OK'
+          })
+        }
+      }
+      else {
+        console.error('No valid auth token available');
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   useEffect(() => {
@@ -229,7 +363,171 @@ const BuilderPage: React.FC = () => {
             <h1 className="d-flex text-white fw-bold my-1 fs-3">Websites</h1>
           </div>
           <div className="d-flex align-items-center py-1">
-            <Link to='/builder/add-websites' className="btn bg-body btn-active-color-primary" id="kt_toolbar_primary_button" data-bs-theme="light">New</Link>
+            <button
+              type="button"
+              className="btn bg-body btn-active-color-primary"
+              id="kt_toolbar_primary_button"
+              data-bs-toggle="modal"
+              data-bs-target="#addWebsiteModal"
+            >
+              New
+            </button>
+            {/* Modal Structure */}
+            <div
+              className="modal fade"
+              id="addWebsiteModal"
+              tabIndex={-1}
+              aria-labelledby="addWebsiteModalLabel"
+              aria-hidden="true"
+            >
+              <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title" id="addWebsiteModalLabel">
+                      Enter Website Name and URL
+                    </h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      data-bs-dismiss="modal"
+                      aria-label="Close"
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+                    <form className="form" onSubmit={handleSubmit}>
+                      {/* Name Field */}
+                      <div className="mb-3">
+                        <label className="form-label fw-bold mb-1" htmlFor="name">
+                          Name:
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control bg-transparent"
+                          id="name"
+                          placeholder="Enter Website Name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {/* URL Field */}
+                      <div className="mb-3">
+                        <label className="form-label fw-bold mb-1" htmlFor="url">
+                          URL:
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control bg-transparent"
+                          id="url"
+                          placeholder="Enter Website URL"
+                          value={url}
+                          onChange={(e) => setURL(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="d-grid">
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          data-bs-dismiss="modal"
+                        >
+                          Submit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary mt-2"
+                          data-bs-dismiss="modal"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* update modal */}
+            <div
+              className="modal fade"
+              ref={modalRef}
+              id="editModalLabel"
+              tabIndex={-1}
+              aria-labelledby="editModalLabel"
+              aria-hidden="true"
+            >
+              <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content">
+                  <div className="modal-header">
+                    <h5 className="modal-title" id="editModalLabel">
+                      Update Websites Name And URL
+                    </h5>
+                    <button
+                      type="button"
+                      className="btn-close"
+                      data-bs-dismiss="modal"
+                      aria-label="Close"
+                    ></button>
+                  </div>
+                  <div className="modal-body">
+                    <form onSubmit={handleUpdateWebsite}>
+                      {/* Name Field */}
+                      <div className="mb-3">
+                        <label className="form-label fw-bold mb-1" htmlFor="name">
+                          Name:
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control bg-transparent"
+                          id="name"
+                          placeholder="Enter Website Name"
+                          value={nameUpdate}
+                          onChange={(e) => setNameUpdate(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {/* URL Field */}
+                      <div className="mb-3">
+                        <label className="form-label fw-bold mb-1" htmlFor="url">
+                          URL:
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control bg-transparent"
+                          id="url"
+                          placeholder="Enter Website URL"
+                          value={urlUpdate}
+                          onChange={(e) => setURLUpdate(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="d-grid">
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          data-bs-dismiss="modal"
+                        >
+                          Update
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-secondary mt-2"
+                          data-bs-dismiss="modal"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -269,9 +567,9 @@ const BuilderPage: React.FC = () => {
                   <th>Url</th>
                   <th>Access_key</th>
                   <th>Status</th>
-                  <th>Error 500</th>
-                  <th>Error 400</th>
-                  <th>Total Items</th>
+                  <th>Error </th>
+                  {/* <th>Error 400</th> */}
+                  <th>Total Urls</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -285,7 +583,7 @@ const BuilderPage: React.FC = () => {
                       <td><Skeleton count={1} width={120} /></td>
                       <td><Skeleton count={1} width={70} /></td>
                       <td><Skeleton count={1} width={70} /></td>
-                      <td><Skeleton count={1} width={70} /></td>
+                      {/* <td><Skeleton count={1} width={70} /></td> */}
                       <td><Skeleton count={1} width={70} /></td>
                       <td></td>
                     </tr>
@@ -306,8 +604,23 @@ const BuilderPage: React.FC = () => {
                           {item.status}
                         </span>
                       </td>
-                      <td><button className='errorBtn' onClick={handleError500}>Click</button></td>
-                      <td><button className='errorBtn' onClick={handleError400}>Click</button></td>
+                      <td>
+                          <Dropdown>
+                            <Dropdown.Toggle variant="secondary" id={`dropdown-${item._id}`} size="sm">
+                              All Error
+                            </Dropdown.Toggle>
+                            <Dropdown.Menu>
+                              <Dropdown.Item onClick={() => handleError500(item._id)} className="text-danger">
+                                <i className="bi bi-exclamation-triangle-fill me-2 text-danger"></i> Error 500
+                              </Dropdown.Item>
+                              <Dropdown.Item onClick={() => handleError400(item._id)} className="text-warning">
+                                <i className="bi bi-exclamation-circle-fill me-2 text-warning"></i> Error 400 
+                              </Dropdown.Item>
+                            </Dropdown.Menu>
+                          </Dropdown>
+                      </td>
+
+                      {/* <td></td> */}
                       <td>{item.totalItems ?? 'N/A'}</td>
                       <td>
                         <Dropdown id='tableDropdown'>
@@ -316,7 +629,7 @@ const BuilderPage: React.FC = () => {
                           </Dropdown.Toggle>
 
                           <Dropdown.Menu className='custom-dropdown-menu'>
-                            <Dropdown.Item as={Link} to={`/builder/update-website/${item._id}`}>
+                            <Dropdown.Item as="button" onClick={() => handleEditClick(item._id)}>
                               <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
                               <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
                             </Dropdown.Item>
@@ -341,7 +654,6 @@ const BuilderPage: React.FC = () => {
                 }
               </tbody>
             </Table>
-
           </div>
           {filterWebsite.length > 0 && (
             <Pagination

@@ -13,6 +13,7 @@ import './_metronic/assets/keenicons/outline/style.css'
 import './_metronic/assets/keenicons/solid/style.css'
 import './_metronic/assets/style.css'
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 /**
  * TIP: Replace this style import with rtl styles to enable rtl mode
@@ -46,7 +47,7 @@ if (container) {
           <AppRoutes />
         </AuthProvider>
       </MetronicI18nProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* <ReactQueryDevtools initialIsOpen={false} /> */}
     </QueryClientProvider>
   )
 }

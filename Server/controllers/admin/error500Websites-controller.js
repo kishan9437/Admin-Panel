@@ -17,8 +17,8 @@ const addError500Website = async (req, res) => {
 
 const getError500website = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 5;
+        // const page = parseInt(req.query.page) || 1;
+        // const limit = parseInt(req.query.limit) || 5;
         const search = req.query.search || '';
 
         const filter = {
@@ -32,16 +32,16 @@ const getError500website = async (req, res) => {
             ] 
         }
 
-        const skip = (page - 1) * limit;
-        const totalError500Website = await Error500Website.countDocuments(filter);
+        // const skip = (page - 1) * limit;
+        // const totalError500Website = await Error500Website.countDocuments(filter);
 
-        const error500Website = await Error500Website.find(filter).skip(skip).limit(limit);
+        const error500Website = await Error500Website.find(filter)
         res.status(200).json({
             success: true,
             items: error500Website,
-            totalError500Website,
-            page,
-            totalPages: Math.ceil(totalError500Website / limit),
+            // totalError500Website,
+            // page,
+            // totalPages: Math.ceil(totalError500Website / limit),
         });
     } catch (error) {
         res.status(500).json({ message: "Error fetching data", error });

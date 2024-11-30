@@ -95,8 +95,15 @@ tbody td .editBackground {
 #tableDropdown .custom-dropdown-menu {
     /* width: 100%; */
     min-width: 56px !important;
-    position: fixed !important;
     z-index: 1050;
+}
+
+.overflow-x-auto {
+    position: relative !important;
+  }
+.custom-dropdown-menu {
+    z-index: 1050 !important;
+    /* Bootstrap dropdown z-index */
 }
 
 .w-auto {
@@ -110,6 +117,12 @@ tbody td .editBackground {
 
 .padding-top {
     padding-top: 5.5px;
+}
+
+.ms-420 {
+    /* margin-left: 360px !important; */
+    top: 24.5px;
+    right: 140px;
 }
 
 .status-cell {

@@ -11,17 +11,18 @@ import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { useSearchParams } from 'react-router-dom'
 
 interface error500 {
     website_id: string;
-    website_url:string;
+    website_url: string;
     status_code: string;
     error_message: number;
     error_type: string;
     retry_attempts: string;
     resolved: string;
     timestamp: string;
-    _id:string;
+    _id: string;
 }
 
 const Error500WebsitePage: React.FC = () => {
@@ -29,12 +30,15 @@ const Error500WebsitePage: React.FC = () => {
     const [error500, setError500] = useState<error500[]>([]);
     const [search, setSearch] = useState<string>('');
     const [filterError500, setFilterError500] = useState<error500[]>([]);
-    const [itemsPerPage, setItemsPerPage] = useState(5);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [searchParams] = useSearchParams();
+    const id = searchParams.get('id');
+    const [currentUrl, setCurrentUrl] = useState<string | null>(null);
 
-    const getError500 = async (page: number = 1, search:string='') => {
+    const getError500 = async (page: number = 1, search: string = '') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
@@ -44,10 +48,16 @@ const Error500WebsitePage: React.FC = () => {
                     },
                 });
                 const data = await response.json();
-                // console.log('Fetched activities:', data);
                 setError500(data.items);
-                setFilterError500(data.items);
-                setTotalPages(data.totalPages)
+
+                if (id) {
+                    const filtered = data.items.filter((item: error500) => item.website_id === id);
+                    if (filtered.length > 0) {
+                        setCurrentUrl(filtered[0].website_url)
+                    }
+                    setFilterError500(filtered);
+                    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
+                }
 
                 setLoading(false);
             } else {
@@ -129,14 +139,16 @@ const Error500WebsitePage: React.FC = () => {
     }
 
     useEffect(() => {
-        getError500(currentPage,search);
-    }, [itemsPerPage, currentPage,search])
+        if (id) {
+            getError500(currentPage, search);
+        }
+    }, [itemsPerPage, currentPage, search])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
                 <div id="kt_toolbar_container" className="container d-flex flex-stack">
                     <div className="page-title d-flex flex-column">
-                        <h1 className="d-flex text-white fw-bold my-1 fs-3">Error500Website</h1>
+                        <h1 className="d-flex text-white fw-bold my-1 fs-3">{currentUrl}</h1>
                     </div>
                     {/* <div className="d-flex align-items-center py-1">
                         <Link to='' className="btn bg-body btn-active-color-primary" id="kt_toolbar_primary_button" data-bs-theme="light">New</Link>
@@ -164,101 +176,102 @@ const Error500WebsitePage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto shadow-sm mb-4'>
-                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
-                            <thead>
-                                <tr>
-                                    <th>Website Id</th>
-                                    <th>Website url</th>
-                                    <th>Status Code</th>
-                                    <th>Error Message</th>
-                                    <th>Error Type</th>
-                                    <th>Retry Attempts </th>
-                                    <th>Timestamp</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {
-                                    loading ? (
-                                        Array(5).fill(0).map((_, index) => (
-                                            <tr key={index}>
-                                                <td><Skeleton count={1} width={200} /></td>
-                                                <td><Skeleton count={1} width={180} /></td>
-                                                <td><Skeleton count={1} width={40} /></td>
-                                                <td><Skeleton count={1} width={60} /></td>
-                                                <td><Skeleton count={1} width={100} /></td>
-                                                <td><Skeleton count={1} width={40} /></td>
-                                                <td><Skeleton count={1} width={200} /></td>
-                                                <td></td>
+                    <div className='overflow-x-auto overflow-y-hidden shadow-sm mb-4 rounded'>
+                    <Table striped bordered hover responsive="sm" className="table  rounded">
+                        <thead>
+                            <tr>
+                                <th>Website Id</th>
+                                <th>Website url</th>
+                                <th>Status Code</th>
+                                <th>Error Message</th>
+                                <th>Error Type</th>
+                                <th>Retry Attempts </th>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {
+                                loading ? (
+                                    Array(5).fill(0).map((_, index) => (
+                                        <tr key={index}>
+                                            <td><Skeleton count={1} width={200} /></td>
+                                            <td><Skeleton count={1} width={180} /></td>
+                                            <td><Skeleton count={1} width={40} /></td>
+                                            <td><Skeleton count={1} width={60} /></td>
+                                            <td><Skeleton count={1} width={100} /></td>
+                                            <td><Skeleton count={1} width={40} /></td>
+                                            <td><Skeleton count={1} width={200} /></td>
+                                            <td></td>
+                                        </tr>
+                                    ))
+                                ) :
+                                    filterError500.length > 0 ? (
+                                        filterError500.map((item, index) => (
+                                            <tr key={index} className='h-50'>
+                                                <td>{item.website_id}</td>
+                                                <td>{item.website_url}</td>
+                                                <td>{item.status_code}</td>
+                                                <td>{item.error_message}</td>
+                                                <td>{item.error_type}</td>
+                                                <td>{item.retry_attempts}</td>
+                                                <td>{item.timestamp}</td>
+                                                <td>
+                                                    <Dropdown id='tableDropdown' className='position-relative' align="end">
+                                                        <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>
+                                                            <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
+                                                        </Dropdown.Toggle>
+
+                                                        <Dropdown.Menu className='custom-dropdown-menu' popperConfig={{modifiers: [{name: 'preventOverflow',options: {boundary: 'viewport'}}]}}>
+                                                            <Dropdown.Item  >
+                                                                <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
+                                                                <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
+                                                            </Dropdown.Item>
+                                                            <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
+                                                                <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
+                                                                <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
+                                                            </Dropdown.Item>
+                                                            <Dropdown.Item onClick={() => getError500()}>
+                                                                <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
+                                                                <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
+                                                            </Dropdown.Item>
+                                                        </Dropdown.Menu>
+                                                    </Dropdown>
+                                                </td>
                                             </tr>
                                         ))
-                                    ) :
-                                        filterError500.length > 0 ? (
-                                            filterError500.map((item, index) => (
-                                                <tr key={index} className='h-50'>
-                                                    <td>{item.website_id}</td>
-                                                    <td>{item.website_url}</td>
-                                                    <td>{item.status_code}</td>
-                                                    <td>{item.error_message}</td>
-                                                    <td>{item.error_type}</td>
-                                                    <td>{item.retry_attempts}</td>
-                                                    <td>{item.timestamp}</td>
-                                                    <td>
-                                                        <Dropdown id='tableDropdown'>
-                                                            <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>
-                                                                <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
-                                                            </Dropdown.Toggle>
-
-                                                            <Dropdown.Menu className='custom-dropdown-menu'>
-                                                                <Dropdown.Item  >
-                                                                    <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
-                                                                    <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
-                                                                </Dropdown.Item>
-                                                                <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
-                                                                    <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
-                                                                    <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
-                                                                </Dropdown.Item>
-                                                                <Dropdown.Item onClick={() => getError500()}>
-                                                                    <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
-                                                                    <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
-                                                                </Dropdown.Item>
-                                                            </Dropdown.Menu>
-                                                        </Dropdown>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={8} className='text-center'>Data Not Found</td>
-                                            </tr>
-                                        )
-                                }
-                            </tbody>
-                        </Table>
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={8} className='text-center'>Data Not Found</td>
+                                        </tr>
+                                    )
+                            }
+                        </tbody>
+                    </Table>
                     </div>
-                    {filterError500.length > 0 && (
-                        <Pagination
-                            previousLabel={'Previous'}
-                            nextLabel={'Next'}
-                            breakLabel={'...'}
-                            pageCount={totalPages}  // Total pages from API
-                            marginPagesDisplayed={2}
-                            pageRangeDisplayed={3}
-                            onPageChange={handlePageClick}
-                            containerClassName={'pagination justify-content-right'}
-                            pageClassName={'page-item'}
-                            pageLinkClassName={'page-link'}
-                            previousClassName={'page-item'}
-                            previousLinkClassName={'page-link'}
-                            nextClassName={'page-item'}
-                            nextLinkClassName={'page-link'}
-                            breakClassName={'page-item'}
-                            breakLinkClassName={'page-link'}
-                            activeClassName={'active'}
-                        />
-                    )}
+
                 </div>
+                {filterError500.length > 0 && (
+                    <Pagination
+                        previousLabel={'Previous'}
+                        nextLabel={'Next'}
+                        breakLabel={'...'}
+                        pageCount={totalPages}  // Total pages from API
+                        marginPagesDisplayed={2}
+                        pageRangeDisplayed={3}
+                        onPageChange={handlePageClick}
+                        containerClassName={'pagination justify-content-right'}
+                        pageClassName={'page-item'}
+                        pageLinkClassName={'page-link'}
+                        previousClassName={'page-item'}
+                        previousLinkClassName={'page-link'}
+                        nextClassName={'page-item'}
+                        nextLinkClassName={'page-link'}
+                        breakClassName={'page-item'}
+                        breakLinkClassName={'page-link'}
+                        activeClassName={'active'}
+                    />
+                )}  
             </Content>
         </>
     )

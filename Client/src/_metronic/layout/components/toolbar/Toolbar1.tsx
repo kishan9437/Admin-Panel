@@ -21,10 +21,8 @@ const Toolbar1 = () => {
           <DefaultTitle />
 
           {/* begin::Actions */}
-          <div className='d-flex align-items-center py-1'>
-            {/* begin::Wrapper */}
+          {/* <div className='d-flex align-items-center py-1'>
             <div className='me-4'>
-              {/* begin::Menu */}
               <a
                 href='#'
                 className='btn btn-custom btn-active-white btn-flex btn-color-white btn-active-color-white'
@@ -36,11 +34,7 @@ const Toolbar1 = () => {
                 Filter
               </a>
 
-              {/* end::Menu */}
             </div>
-            {/* end::Wrapper */}
-
-            {/* begin::Button */}
 
             <a
               className='btn bg-body btn-active-color-primary'
@@ -50,8 +44,7 @@ const Toolbar1 = () => {
             >
               Create
             </a>
-            {/* end::Button */}
-          </div>
+          </div> */}
           {/* end::Actions */}
         </div>
         {/* end::Container */}

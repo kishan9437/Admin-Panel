@@ -65,17 +65,12 @@ const MixedWidget2: FC<Props> = ({className, chartColor, chartHeight, strokeColo
       {/* end::Header */}
       {/* begin::Body */}
       <div className='card-body p-0'>
-        {/* begin::Chart */}
         <div
           ref={chartRef}
           className={`mixed-widget-2-chart card-rounded-bottom bg-${chartColor}`}
         ></div>
-        {/* end::Chart */}
-        {/* begin::Stats */}
         <div className='card-p mt-n20 position-relative'>
-          {/* begin::Row */}
           <div className='row g-0'>
-            {/* begin::Col */}
             <div className='col bg-light-warning px-6 py-8 rounded-2 me-7 mb-7'>
               <KTIcon iconName='chart-simple' className='fs-3x text-warning d-block my-2' />
               <a href='#' className='text-warning fw-semibold fs-6'>

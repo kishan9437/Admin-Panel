@@ -26,7 +26,7 @@ const ActivityPage: React.FC = () => {
     const [activities, setActivities] = useState<Activity[]>([]);
     const [search, setSearch] = useState<string>('');
     const [filterActivity, setFilterActivity] = useState<Activity[]>([]);
-    const [itemsPerPage, setItemsPerPage] = useState(5);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -217,10 +217,10 @@ const ActivityPage: React.FC = () => {
                                                             </Dropdown.Toggle>
 
                                                             <Dropdown.Menu className='custom-dropdown-menu'>
-                                                                <Dropdown.Item  >
+                                                                {/* <Dropdown.Item  >
                                                                     <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
                                                                     <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
-                                                                </Dropdown.Item>
+                                                                </Dropdown.Item> */}
                                                                 <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
                                                                     <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                                                                     <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>

@@ -2,7 +2,6 @@ import { FC } from 'react'
 import { PageTitle } from '../../../_metronic/layout/core'
 // import { BuilderPage } from './BuilderPage.jsx'
 import { BuilderPage } from './BuilderPage';
-import { AddWebsite } from './AddWebsite';
 import { Route, Routes } from 'react-router-dom';
 import { UpdateWebsite } from './UpdateWebsite';
 
@@ -12,7 +11,6 @@ const BuilderPageWrapper = () => {
       <PageTitle breadcrumbs={[]}>Layout Builder</PageTitle>
       <Routes>
         <Route path="/" element={<BuilderPage />} />
-        <Route path="add-websites" element={<AddWebsite />} />
         <Route path='update-website/:id' element={<UpdateWebsite/>}/>
       </Routes>
     </>

@@ -43,7 +43,7 @@ const WebsiteUrlpage: React.FC = () => {
     const [urls, setUrls] = useState<Website[]>([]);
     const [currentWebsiteId, setCurrentWebsiteId] = useState<string | null>(null);
     const [selectedUrl, setSelectedUrl] = useState('')
-    const [itemsPerPage, setItemsPerPage] = useState(5);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
     const { auth } = useAuth();
     const [loading, setLoading] = useState(true);
     const { id } = useParams<{ id: string }>();
@@ -300,18 +300,18 @@ const WebsiteUrlpage: React.FC = () => {
                         />
                     </div>
                     <div className='overflow-x-auto shadow-sm mb-4'>
-                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table overflow-hidden rounded" style={{ minWidth: '100%' }}>
+                        <Table id='tableWebsiteUrl' striped bordered hover responsive="sm" className="table rounded" style={{ minWidth: '100%' }}>
                             <thead>
                                 <tr>
-                                    <th>Website Id</th>
+                                    {/* <th>Website Id</th> */}
                                     <th>URL Hash</th>
                                     <th>URL</th>
                                     <th>Last Render At</th>
                                     <th>Created At</th>
                                     <th>Depth</th>
                                     <th>Archived</th>
-                                    <th>Header</th>
-                                    <th>Parent URL</th>
+                                    {/* <th>Header</th> */}
+                                    {/* <th>Parent URL</th> */}
                                     <th>Status Code</th>
                                     <th>Status</th>
                                     <th>Action</th>
@@ -322,39 +322,38 @@ const WebsiteUrlpage: React.FC = () => {
                                     // Show skeletons while data is loading
                                     Array(5).fill(0).map((_, index) => (
                                         <tr key={index}>
+                                            {/* <td><Skeleton count={1} /></td> */}
                                             <td><Skeleton count={1} /></td>
                                             <td><Skeleton count={1} /></td>
                                             <td><Skeleton count={1} /></td>
                                             <td><Skeleton count={1} /></td>
                                             <td><Skeleton count={1} /></td>
                                             <td><Skeleton count={1} /></td>
-                                            <td><Skeleton count={1} /></td>
-                                            <td><Skeleton count={1} /></td>
-                                            <td><Skeleton count={1} /></td>
+                                            {/* <td><Skeleton count={1} /></td> */}
+                                            {/* <td><Skeleton count={1} /></td> */}
                                             <td><Skeleton count={1} /></td>
                                             <td><Skeleton count={1} /></td>
                                             <td></td>
                                         </tr>
                                     ))
                                 ) : filteredResults.length > 0 ? (
-                                    // Map through filteredResults to display data
                                     filteredResults.map((item, index) => (
                                         <tr key={index}>
-                                            <td>{item.website_id}</td>
+                                            {/* <td>{item.website_id}</td> */}
                                             <td>{item.url_hash}</td>
                                             <td><a href={item.url} target='_blank' rel='noopener noreferrer'>{item.url}</a></td>
                                             <td>{new Date(item.last_render_at).toLocaleString()}</td>
                                             <td>{new Date(item.created_at).toLocaleString()}</td>
                                             <td>{item.depth}</td>
                                             <td>{item.is_archived ? 'true' : 'false'}</td>
-                                            <td>
+                                            {/* <td>
                                                 {item.headers && Object.keys(item.headers).map((key) => (
                                                     <div key={key}>
                                                         <span>{key}:</span> {item.headers[key]}
                                                     </div>
                                                 ))}
-                                            </td>
-                                            <td><a href={item.parent_url} target='_blank' rel='noopener noreferrer'>{item.parent_url}</a></td>
+                                            </td> */}
+                                            {/* <td><a href={item.parent_url} target='_blank' rel='noopener noreferrer'>{item.parent_url}</a></td> */}
                                             <td>{item.status_code}</td>
                                             <td>
                                                 <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive' | 'Rendered')}`}>
@@ -367,10 +366,10 @@ const WebsiteUrlpage: React.FC = () => {
                                                         <FontAwesomeIcon icon={faEllipsisH} className='fs-3 pt-1' />
                                                     </Dropdown.Toggle>
                                                     <Dropdown.Menu className='custom-dropdown-menu'>
-                                                        <Dropdown.Item as={Link} to={`/websiteurl/update-websiteUrl/${item._id}`}>
+                                                        {/* <Dropdown.Item as={Link} to={`/websiteurl/update-websiteUrl/${item._id}`}>
                                                             <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
                                                             <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
-                                                        </Dropdown.Item>
+                                                        </Dropdown.Item> */}
                                                         <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
                                                             <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                                                             <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
@@ -399,7 +398,7 @@ const WebsiteUrlpage: React.FC = () => {
                             previousLabel={'Previous'}
                             nextLabel={'Next'}
                             breakLabel={'...'}
-                            pageCount={totalPages}  // Total pages from API
+                            pageCount={totalPages}  
                             marginPagesDisplayed={2}
                             pageRangeDisplayed={3}
                             onPageChange={handlePageClick}
