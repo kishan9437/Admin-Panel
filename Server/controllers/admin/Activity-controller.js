@@ -21,20 +21,28 @@ const getActivity = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const search = req.query.search || '';
+        const sortOrder = req.query.order === "desc" ? -1 : 1;
+        const statusFilter = req.query.status;
 
         const filter = {
-            $or:[
-                ...(mongoose.Types.ObjectId.isValid(search) ? [{ url_id: search}]: []),
-                { status: new RegExp(search, 'i') },
-                { error: new RegExp(search, 'i') },
-                ...(Number.isInteger(Number(search)) ? [{ page_size: search }] : [])
-            ] 
+            $and: [
+                {
+                    $or:[
+                        ...(mongoose.Types.ObjectId.isValid(search) ? [{ url_id: search}]: []),
+                        { status: new RegExp(search, 'i') },
+                        { error: new RegExp(search, 'i') },
+                        ...(Number.isInteger(Number(search)) ? [{ page_size: search }] : [])
+                    ]
+                },
+                ...(statusFilter ? [{ status: statusFilter }] : [])
+            ]
+             
         }
 
         const skip = (page - 1) * limit;
         const totalActivity = await PrerenderActivity.countDocuments(filter);  
 
-        const activity = await PrerenderActivity.find(filter).skip(skip).limit(limit);
+        const activity = await PrerenderActivity.find(filter).skip(skip).limit(limit).sort({page_size: sortOrder});
         res.status(200).json({
             success: true,
             items: activity,

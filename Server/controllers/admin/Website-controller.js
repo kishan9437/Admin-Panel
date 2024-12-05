@@ -29,20 +29,24 @@ const getAllWebsites = async (req, res) => {
         const limit = parseInt(req.query.limit) || 5;
         const skip = (page - 1) * limit;
         const sortOrder = req.query.order === "desc" ? -1 : 1;
-
         const search = req.query.search || "";
-
-        const filter =
-        {
-            $or: [
-                // { _id: new RegExp(search, 'i') },
-                // ...(mongoose.Types.ObjectId.isValid(search) ? [{ _id: search }] : []),
-                { name: new RegExp(search, 'i') },
-                { url: new RegExp(search, 'i') },
-                { access_key: new RegExp(search, 'i') },
-                { status: new RegExp(search, 'i') },
+        const statusFilter = req.query.status;
+        const filter = {
+            $and: [
+                {
+                    $or: [
+                        // { _id: new RegExp(search, 'i') },
+                        // ...(mongoose.Types.ObjectId.isValid(search) ? [{ _id: search }] : []),
+                        { name: new RegExp(search, 'i') },
+                        { url: new RegExp(search, 'i') },
+                        { access_key: new RegExp(search, 'i') },
+                        { status: new RegExp(search, 'i') },
+                    ]
+                },
+                ...(statusFilter ? [{ status: statusFilter }] : []),
             ]
-        }
+        };
+
         const totalWebsites = await Website.countDocuments(filter);  // Total count of documents
         const websites = await Website.find(filter)
             .skip(skip)
@@ -80,6 +84,7 @@ const getWebsiteId = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
     const search = req.query.search || '';
+    const statusFilter = req.query.status;
 
     try {
         const website = await Website.findById(website_id);
@@ -87,22 +92,28 @@ const getWebsiteId = async (req, res) => {
             return res.status(404).json({ message: 'Website not found' });
         }
         const skip = (page - 1) * limit;
+        const sortOrder = req.query.order === "desc" ? -1 : 1;
 
         const filter = {
-            website_id: website_id,
-            $or: [
-                // {website_id : new RegExp(search, 'i')},
-                ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search}]: []),
-                { url: new RegExp(search, 'i') },
-                { status: new RegExp(search, 'i') },
-                ...(Number.isInteger(Number(search)) ? [{ status_code: Number(search) }] : []),
-                ...(Number.isInteger(Number(search)) ? [{ depth: Number(search) }] : []),
-                { parent_url: new RegExp(search, 'i') },
-                ...(search === 'true' || search === 'false' ? [{ is_archived: search === 'true' }] : [])
+            $and: [
+                {
+                    website_id: website_id,
+                    $or: [
+                        // {website_id : new RegExp(search, 'i')},
+                        ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search }] : []),
+                        { url: new RegExp(search, 'i') },
+                        { status: new RegExp(search, 'i') },
+                        ...(Number.isInteger(Number(search)) ? [{ status_code: Number(search) }] : []),
+                        ...(Number.isInteger(Number(search)) ? [{ depth: Number(search) }] : []),
+                        { parent_url: new RegExp(search, 'i') },
+                        ...(search === 'true' || search === 'false' ? [{ is_archived: search === 'true' }] : [])
+                    ]
+                },
+                ...(statusFilter? [{ status: statusFilter }] : []),
             ]
         }
 
-        const websiteUrls = await WebsiteUrl.find(filter).skip(skip).limit(limit);
+        const websiteUrls = await WebsiteUrl.find(filter).skip(skip).limit(limit).sort({ status_code: sortOrder });
 
         const totalUrls = await WebsiteUrl.countDocuments(filter);
 

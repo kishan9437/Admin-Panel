@@ -11,6 +11,8 @@ import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
+
 
 interface Activity {
     _id: string;
@@ -28,14 +30,18 @@ const ActivityPage: React.FC = () => {
     const [filterActivity, setFilterActivity] = useState<Activity[]>([]);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
+    const [page, setPage] = useState<number>()
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortColumn, setSortColumn] = useState<string>('name'); // Default sort column
+    const [status, setStatus] = useState<string>("");
 
-    const getActivity = async (page: number = 1,search: string='') => {
+    const getActivity = async (page: number = currentPage, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '', selectedStaus: string) => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/activities?page=${page}&limit=${itemsPerPage}&search=${search}`, {
+                const response = await fetch(`http://localhost:5000/api/activities?page=${page}&limit=${itemsPerPage}&search=${search}&order=${order}&status=${selectedStaus}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -55,14 +61,23 @@ const ActivityPage: React.FC = () => {
         }
     }
 
-    const handlePageClick = (selectedPage: { selected: number }) => {
-        const selectedPageNumber = selectedPage.selected + 1;
-        setCurrentPage(selectedPageNumber);
-        getActivity(selectedPageNumber);
+    const handleSort = (column: string) => {
+        const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+        setSortOrder(newOrder);
+        setSortColumn(column)
+        getActivity(currentPage, newOrder, column,search,status);
+    }
+
+    const handlePageClick = (selectedItem: { selected: number }) => {
+        const selectedPage = selectedItem.selected + 1;
+        setPage(selectedPage);
+        getActivity(selectedPage, sortOrder,sortColumn, search,status);
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value)
+        const searchValue = e.target.value
+        setSearch(searchValue)
+        getActivity(page, sortOrder,sortColumn, searchValue,status)
     }
 
     const getStatusClass = (status: string): string => {
@@ -112,7 +127,7 @@ const ActivityPage: React.FC = () => {
                                 text: 'Data Deleting successfully',
                                 confirmButtonText: "OK"
                             }).then(() => {
-                                getActivity();
+                                getActivity(page, sortOrder, sortColumn,search,status);
                             })
                         }
                         else {
@@ -137,8 +152,8 @@ const ActivityPage: React.FC = () => {
     }
 
     useEffect(() => {
-        getActivity(currentPage,search);
-    }, [itemsPerPage, currentPage,search])
+        getActivity(currentPage, sortOrder,sortColumn, search,status);
+    }, [itemsPerPage, currentPage, search,status])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
@@ -155,6 +170,16 @@ const ActivityPage: React.FC = () => {
                 <div className="container" id='tableContainer'>
                     <div className='searchContainer'>
                         <div className="d-flex align-items-center mb-3 me-3 ">
+                        <select
+                            id="status-select"
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value)} 
+                            className="form-select form-select-sm mt-0 me-3 "
+                        >
+                            <option value="">All</option>
+                            <option value="success">Success</option>
+                            <option value="fail">Fail</option>
+                        </select>
                             <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='ps-1 rounded h-100'>
                                 <option value={5}>5</option>
                                 <option value={10}>10</option>
@@ -172,15 +197,40 @@ const ActivityPage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto shadow-sm mb-4'>
+                    <div className='overflow-x-auto shadow-sm mb-4 rounded'>
                         <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
                             <thead>
                                 <tr>
-                                    <th>Url Id</th>
-                                    <th>Page Size</th>
-                                    <th>Error</th>
-                                    <th>Status</th>
-                                    <th>Last Render At</th>
+                                    <th onClick={() => handleSort('urlid')} className='cursor-pointer'>
+                                        Url Id
+                                        <span className='ms-1'>
+                                            {sortColumn === 'urlid' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('PageSize')} className='cursor-pointer'>
+                                        Page Size
+                                        <span className='ms-1'>
+                                            {sortColumn === 'PageSize' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('error')} className='cursor-pointer'>
+                                        Error
+                                        <span className='ms-1'>
+                                            {sortColumn === 'error' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('status')} className='cursor-pointer'>
+                                        Status
+                                        <span className='ms-1'>
+                                            {sortColumn === 'status' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('LastRender')} className='cursor-pointer'>
+                                        Last Render At
+                                        <span className='ms-1'>
+                                            {sortColumn === 'LastRender' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -225,7 +275,7 @@ const ActivityPage: React.FC = () => {
                                                                     <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                                                                     <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
                                                                 </Dropdown.Item>
-                                                                <Dropdown.Item onClick={() => getActivity()}>
+                                                                <Dropdown.Item onClick={() => getActivity(page, sortOrder, sortColumn,search,status)}>
                                                                     <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
                                                                     <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
                                                                 </Dropdown.Item>
@@ -251,7 +301,7 @@ const ActivityPage: React.FC = () => {
                             breakLabel={'...'}
                             pageCount={totalPages}  // Total pages from API
                             marginPagesDisplayed={2}
-                            pageRangeDisplayed={3}
+                            // pageRangeDisplayed={3}
                             onPageChange={handlePageClick}
                             containerClassName={'pagination justify-content-right'}
                             pageClassName={'page-item'}

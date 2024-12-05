@@ -100,7 +100,8 @@ tbody td .editBackground {
 
 .overflow-x-auto {
     position: relative !important;
-  }
+}
+
 .custom-dropdown-menu {
     z-index: 1050 !important;
     /* Bootstrap dropdown z-index */
@@ -117,6 +118,14 @@ tbody td .editBackground {
 
 .padding-top {
     padding-top: 5.5px;
+}
+
+.react-tooltip {
+    background-color: #333;
+    color: white;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 12px;
 }
 
 .ms-420 {
@@ -172,3 +181,4 @@ tbody td .editBackground {
 .errorBtn:hover {
     background-color: #056de5;
 }
+

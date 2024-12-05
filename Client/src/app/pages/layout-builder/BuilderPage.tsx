@@ -13,7 +13,8 @@ import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useNavigate } from 'react-router-dom'
 import Modal from 'bootstrap/js/dist/modal';
-
+import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
+import { MixedWidget11 } from '../../../_metronic/partials/widgets'
 
 
 interface Item {
@@ -40,24 +41,26 @@ const BuilderPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortColumn, setSortColumn] = useState<string>(''); // Default sort column
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { auth } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState<number>(1)
+  const [page, setPage] = useState<number>()
   const [name, setName] = useState<string>('');
   const [url, setURL] = useState<string>('');
   const [nameUpdate, setNameUpdate] = useState<string>('');
   const [urlUpdate, setURLUpdate] = useState<string>('');
   const [currentId, setCurrentId] = useState<string | null>(null)
   const modalRef = useRef<HTMLDivElement | null>(null)
+  const [status, setStatus] = useState<string>("");
 
   const navigate = useNavigate();
 
-  const getAllWebsites = async (page: number = 1, order: 'asc' | 'desc' = 'asc', search: string = '') => {
+  const getAllWebsites = async (page: number = currentPage, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '', selectedStatus: string) => {
     try {
       if (auth && auth.api_token) {
         setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order=${order}&search=${search}`, {
+        const response = await fetch(`http://localhost:5000/api/websites?page=${page}&limit=${itemsPerPage}&order=${order}&search=${search}&status=${selectedStatus}`, {
           headers: {
             Authorization: `Bearer ${auth.api_token}`,
           },
@@ -108,10 +111,10 @@ const BuilderPage: React.FC = () => {
   }
 
   // Handle page click for pagination
-  const handlePageClick = (selectedPage: { selected: number }) => {
-    const selectedPageNumber = selectedPage.selected + 1;
-    setCurrentPage(selectedPageNumber);
-    getAllWebsites(selectedPageNumber);
+  const handlePageClick = (selectedItem: { selected: number }) => {
+    const selectedPage = selectedItem.selected + 1;
+    setPage(selectedPage);
+    getAllWebsites(selectedPage, sortOrder, sortColumn, search, status);
   };
 
   // const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,14 +137,16 @@ const BuilderPage: React.FC = () => {
   // };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1)
+    const searchValue = e.target.value
+    setSearch(searchValue);
+    getAllWebsites(page, sortOrder, sortColumn, searchValue, status)
   }
 
-  const handleSort = () => {
+  const handleSort = (column: string) => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     setSortOrder(newOrder);
-    getAllWebsites(currentPage, newOrder);
+    setSortColumn(column)
+    getAllWebsites(currentPage, newOrder, column, search, status);
   }
 
   const handleDeleteItem = async (id: string) => {
@@ -174,7 +179,7 @@ const BuilderPage: React.FC = () => {
                 text: 'Data Deleting successfully',
                 confirmButtonText: "OK"
               }).then(() => {
-                getAllWebsites();
+                getAllWebsites(page, sortOrder, sortColumn, search, status);
               })
             }
             else {
@@ -252,7 +257,7 @@ const BuilderPage: React.FC = () => {
           }).then(() => {
             setName('');
             setURL('');
-            getAllWebsites();
+            getAllWebsites(page, sortOrder, sortColumn, search, status);
             // navigate('/builder')
           })
         }
@@ -328,7 +333,7 @@ const BuilderPage: React.FC = () => {
             text: 'Data updated successfully',
             icon: 'success',
             confirmButtonText: 'OK'
-          }).then(() => getAllWebsites());
+          }).then(() => getAllWebsites(page, sortOrder, sortColumn, search, status));
         }
         else {
           console.error('Error updating websites', response.statusText);
@@ -350,8 +355,8 @@ const BuilderPage: React.FC = () => {
   }
 
   useEffect(() => {
-    getAllWebsites(currentPage, sortOrder, search);
-  }, [itemsPerPage, currentPage, search]);
+    getAllWebsites(currentPage, sortOrder, sortColumn, search, status);
+  }, [itemsPerPage, currentPage, search, status]);
 
   return (
     <>
@@ -531,12 +536,30 @@ const BuilderPage: React.FC = () => {
           </div>
         </div>
       </div>
+
       <Content>
-        <div className="container" id='tableContainer'>
+        {/* <MixedWidget11
+          className='card-xxl-stretch-50 mb-5 mb-xl-8'
+          chartColor='primary'
+          chartHeight='175px'
+        /> */}
+        <div className="container mt-0" id='tableContainer'>
           <div className='searchContainer'>
             {/* <span className='pt-1 pe-3 text-white fs-5 fw-bold'>Search : </span> */}
-            <div className="d-flex align-items-center mb-3 me-3 ">
-              <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='ps-1 rounded h-100'>
+            <div className="d-flex align-items-center mb-3 me-3 g-2">
+              <select id="status-select"
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className='form-select form-select-sm me-3 shadow-sm '
+              >
+                <option value="">All</option>
+                <option value="Pending">Pending</option>
+                <option value="Complete">Complete</option>
+                <option value="Error">Error</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='form-select form-select-sm shadow-sm ' style={{width:'100px'}}>
                 <option value={5}>5</option>
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -550,26 +573,45 @@ const BuilderPage: React.FC = () => {
               placeholder="Search"
               value={search}
               onChange={handleSearch}
-              className="mb-3"
+              className="mb-3 shadow-sm"
             />
           </div>
-          <div className='overflow-x-auto shadow-sm mb-4'>
-            <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
+          <div className='table-responsive shadow-sm mb-4 rounded'>
+            <Table striped bordered hover responsive="sm" className=" table rounded">
               <thead>
                 <tr>
                   {/* <th>No</th> */}
-                  <th onClick={handleSort} className='cursor-pointer'>
+                  <th onClick={() => handleSort('name')} className='cursor-pointer'>
                     Name
-                    <span className='ms-1 mt-3'>
-                      {sortOrder === 'asc' ? "↑" : "↓"}
+                    <span className='ms-1'>
+                      {sortColumn === 'name' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
                     </span>
                   </th>
-                  <th>Url</th>
-                  <th>Access_key</th>
-                  <th>Status</th>
+                  <th onClick={() => handleSort('url')} className='cursor-pointer'>
+                    Url
+                    <span className='ms-1 mt-3'>
+                      {sortColumn === 'url' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                    </span>
+                  </th>
+                  <th onClick={() => handleSort('access_key')} className='cursor-pointer'>
+                    Access_key
+                    <span className='ms-1 mt-3'>
+                      {sortColumn === 'access_key' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                    </span>
+                  </th>
+                  <th onClick={() => handleSort('status')} className='cursor-pointer'>
+                    Status
+                    <span className='ms-1 mt-3'>
+                      {sortColumn === 'status' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                    </span>
+                  </th>
                   <th>Error </th>
-                  {/* <th>Error 400</th> */}
-                  <th>Total Urls</th>
+                  <th onClick={() => handleSort('total_urls')} className='cursor-pointer'>
+                    Total Urls
+                    <span className='ms-1 mt-3'>
+                      {sortColumn === 'total_urls' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                    </span>
+                  </th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -605,19 +647,19 @@ const BuilderPage: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                          <Dropdown>
-                            <Dropdown.Toggle variant="secondary" id={`dropdown-${item._id}`} size="sm">
-                              All Error
-                            </Dropdown.Toggle>
-                            <Dropdown.Menu>
-                              <Dropdown.Item onClick={() => handleError500(item._id)} className="text-danger">
-                                <i className="bi bi-exclamation-triangle-fill me-2 text-danger"></i> Error 500
-                              </Dropdown.Item>
-                              <Dropdown.Item onClick={() => handleError400(item._id)} className="text-warning">
-                                <i className="bi bi-exclamation-circle-fill me-2 text-warning"></i> Error 400 
-                              </Dropdown.Item>
-                            </Dropdown.Menu>
-                          </Dropdown>
+                        <Dropdown>
+                          <Dropdown.Toggle variant="secondary" id={`dropdown-${item._id}`} size="sm">
+                            All Error
+                          </Dropdown.Toggle>
+                          <Dropdown.Menu>
+                            <Dropdown.Item onClick={() => handleError500(item._id)} className="text-danger">
+                              <i className="bi bi-exclamation-triangle-fill me-2 text-danger"></i> Error 500
+                            </Dropdown.Item>
+                            <Dropdown.Item onClick={() => handleError400(item._id)} className="text-warning">
+                              <i className="bi bi-exclamation-circle-fill me-2 text-warning"></i> Error 400
+                            </Dropdown.Item>
+                          </Dropdown.Menu>
+                        </Dropdown>
                       </td>
 
                       {/* <td></td> */}
@@ -637,7 +679,7 @@ const BuilderPage: React.FC = () => {
                               <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                               <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
                             </Dropdown.Item>
-                            <Dropdown.Item onClick={() => getAllWebsites()}>
+                            <Dropdown.Item onClick={() => getAllWebsites(page, sortOrder, sortColumn, search, status)}>
                               <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
                               <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
                             </Dropdown.Item>
@@ -662,7 +704,7 @@ const BuilderPage: React.FC = () => {
               breakLabel={'...'}
               pageCount={totalPages}
               marginPagesDisplayed={2}
-              pageRangeDisplayed={3}
+              // pageRangeDisplayed={3}
               onPageChange={handlePageClick}
               containerClassName={'pagination justify-content-right'}
               pageClassName={'page-item'}

@@ -20,21 +20,29 @@ const getCrawlError = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const search = req.query.search || '';
+        const sortOrder = req.query.order === "desc" ? -1 : 1;
+        const errorFilter = req.query.error;
 
         const filter = {
-            $or:[
-                ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search}]: []),
-                { url: new RegExp(search, 'i') },
-                { source_url: new RegExp(search, 'i') },
-                { error_message: new RegExp(search, 'i') },
-                { error_type: new RegExp(search, 'i') },
-            ] 
+            $and: [
+                {
+                    $or:[
+                        ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search}]: []),
+                        { url: new RegExp(search, 'i') },
+                        { source_url: new RegExp(search, 'i') },
+                        { error_message: new RegExp(search, 'i') },
+                        { error_type: new RegExp(search, 'i') },
+                    ]
+                },
+                ...(errorFilter ? [{error_type:errorFilter}]: []),
+            ]
+             
         }
 
         const skip = (page - 1) * limit;
         const totalCrawlError = await CrawlError.countDocuments(filter);
 
-        const crawlError = await CrawlError.find(filter).skip(skip).limit(limit);
+        const crawlError = await CrawlError.find(filter).skip(skip).limit(limit).sort({error_type: sortOrder});
         res.status(200).json({
             success: true,
             items: crawlError,

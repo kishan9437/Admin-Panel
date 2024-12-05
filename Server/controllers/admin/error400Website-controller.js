@@ -19,6 +19,7 @@ const getError400website = async (req, res) => {
         // const page = parseInt(req.query.page) || 1;
         // const limit = parseInt(req.query.limit) || 5;
         const search = req.query.search;
+        const sortOrder = req.query.order === "desc" ? -1 : 1;
 
         const filter = {
             $or:[
@@ -35,7 +36,7 @@ const getError400website = async (req, res) => {
         // const skip = (page - 1) * limit;
         // const totalError400Website = await Error400Website.countDocuments(filter);
 
-        const error400Website = await Error400Website.find(filter);
+        const error400Website = await Error400Website.find(filter).sort({retry_attempts: sortOrder});
         res.status(200).json({
             success: true,
             items: error400Website,

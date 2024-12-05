@@ -11,6 +11,7 @@ import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 
 interface crawlSession {
     website_id: string;
@@ -28,14 +29,18 @@ const CrawlSessionPage: React.FC = () => {
     const [filterCrawlSession, setFilterCrawlSession] = useState<crawlSession[]>([]);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
+    const [page, setPage] = useState<number>()
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortColumn, setSortColumn] = useState<string>('');
+    const [status, setStatus] = useState<string>('')
 
-    const getCrawlSession = async (page: number = 1 , search:string='') => {
+    const getCrawlSession = async (page: number = currentPage, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '', selectedStatus: string) => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/get-crawlsession?page=${page}&limit=${itemsPerPage}&search=${search}`, {
+                const response = await fetch(`http://localhost:5000/api/get-crawlsession?page=${page}&limit=${itemsPerPage}&search=${search}&order=${order}&status=${selectedStatus}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -55,14 +60,23 @@ const CrawlSessionPage: React.FC = () => {
         }
     }
 
-    const handlePageClick = (selectedPage: { selected: number }) => {
-        const selectedPageNumber = selectedPage.selected + 1;
-        setCurrentPage(selectedPageNumber);
-        getCrawlSession(selectedPageNumber);
+    const handleSort = (column: string) => {
+        const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+        setSortOrder(newOrder);
+        setSortColumn(column)
+        getCrawlSession(currentPage, newOrder, column, search, status);
+    }
+
+    const handlePageClick = (selectedItem: { selected: number }) => {
+        const selectedPage = selectedItem.selected + 1;
+        setPage(selectedPage);
+        getCrawlSession(selectedPage, sortOrder, sortColumn, search, status);
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value);
+        const searchValue = e.target.value
+        setSearch(searchValue);
+        getCrawlSession(page, sortOrder, searchValue, sortColumn, status)
     }
 
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -101,7 +115,7 @@ const CrawlSessionPage: React.FC = () => {
                                 text: 'Data Deleting successfully',
                                 confirmButtonText: "OK"
                             }).then(() => {
-                                getCrawlSession();
+                                getCrawlSession(page, sortOrder, sortColumn, search, status);
                             })
                         }
                         else {
@@ -141,8 +155,8 @@ const CrawlSessionPage: React.FC = () => {
     };
 
     useEffect(() => {
-        getCrawlSession(currentPage,search);
-    }, [itemsPerPage, currentPage,search])
+        getCrawlSession(currentPage, sortOrder, search, sortColumn, status);
+    }, [itemsPerPage, currentPage, search, status])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
@@ -159,6 +173,18 @@ const CrawlSessionPage: React.FC = () => {
                 <div className="container" id='tableContainer'>
                     <div className='searchContainer'>
                         <div className="d-flex align-items-center mb-3 me-3 ">
+                            <select id="status-select"
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                className='rounded h-100 me-3'
+                            >
+                                <option value="">All</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Active">Active</option>
+                                <option value="Stopped">Stopped</option>
+                            </select>
+
                             <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='ps-1 rounded h-100'>
                                 <option value={5}>5</option>
                                 <option value={10}>10</option>
@@ -176,16 +202,36 @@ const CrawlSessionPage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto shadow-sm mb-4'>
-                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
+                    <div className='overflow-x-auto shadow-sm mb-4 rounded'>
+                        <Table striped bordered hover responsive="sm" className="table rounded">
                             <thead>
                                 <tr>
                                     {/* <th>Website Id</th> */}
-                                    <th>Website Id</th>
-                                    <th>Crawl Depth</th>
-                                    <th>Status</th>
-                                    <th>Start Time</th>
-                                    <th>Last Updated Time</th>
+                                    {/* <th>Website Id</th> */}
+                                    <th onClick={() => handleSort('Crawldepth')} className='cursor-pointer'>
+                                        Crawl Depth
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Crawldepth' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Status')} className='cursor-pointer'>
+                                        Status
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Status' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Starttime')} className='cursor-pointer'>
+                                        Start Time
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Starttime' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Lastupdate')} className='cursor-pointer'>
+                                        Last Updated Time
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Lastupdate' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -194,7 +240,7 @@ const CrawlSessionPage: React.FC = () => {
                                     loading ? (
                                         Array(5).fill(0).map((_, index) => (
                                             <tr key={index}>
-                                                <td><Skeleton count={1} width={180} /></td>
+                                                {/* <td><Skeleton count={1} width={180} /></td> */}
                                                 <td><Skeleton count={1} width={80} /></td>
                                                 <td><Skeleton count={1} width={80} /></td>
                                                 <td><Skeleton count={1} width={120} /></td>
@@ -207,7 +253,7 @@ const CrawlSessionPage: React.FC = () => {
                                             filterCrawlSession.map((item, index) => (
                                                 <tr key={index} className='h-50'>
                                                     {/* <td>{item.website_id}</td> */}
-                                                    <td>{item.website_id}</td>
+                                                    {/* <td>{item.website_id}</td> */}
                                                     <td>{item.crawl_depth}</td>
                                                     <td>
                                                         <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Completed' | 'Stopped' | 'Active')}`}>
@@ -232,7 +278,7 @@ const CrawlSessionPage: React.FC = () => {
                                                                     <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                                                                     <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
                                                                 </Dropdown.Item>
-                                                                <Dropdown.Item onClick={() => getCrawlSession()}>
+                                                                <Dropdown.Item onClick={() => getCrawlSession(page, sortOrder, sortColumn, search, status)}>
                                                                     <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
                                                                     <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
                                                                 </Dropdown.Item>
@@ -257,7 +303,7 @@ const CrawlSessionPage: React.FC = () => {
                             breakLabel={'...'}
                             pageCount={totalPages}  // Total pages from API
                             marginPagesDisplayed={2}
-                            pageRangeDisplayed={3}
+                            // pageRangeDisplayed={3}
                             onPageChange={handlePageClick}
                             containerClassName={'pagination justify-content-right'}
                             pageClassName={'page-item'}

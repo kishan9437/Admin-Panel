@@ -80,12 +80,12 @@ const DashboardPage = () => (
 
       <div className='row gy-5 g-xl-8'>
         <div className='col-xxl-4'>
-          <MixedWidget2
+          {/* <MixedWidget2
             className='card-xl-stretch mb-xl-8'
             chartColor='danger'
             chartHeight='200px'
             strokeColor='#cb1e46'
-          />
+          /> */}
         </div>
         <div className='col-xxl-4'>
           {/* <ListsWidget5 className='card-xxl-stretch' /> */}

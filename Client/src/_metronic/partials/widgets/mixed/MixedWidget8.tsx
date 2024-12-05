@@ -53,8 +53,8 @@ const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
   const [urls, setUrls] = useState<Urldata[]>([]);
   const [selectedUrl, setSelectedUrl] = useState("")
   const [monthCount, setMonthCount] = useState("6")
-
   const [filterType, setFilterType] = useState<'daily' | 'today' | 'monthly' | 'weekly' | 'yearly'>('monthly');
+  const [secondSelectOptions, setSecondSelectOptions] = useState<string[]>(['6 months', '12 months']); // Default for 'monthly'
 
   const fetchChartData = async (selectedParentUrl: string) => {
     try {
@@ -114,16 +114,39 @@ const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
         };
       }
 
-      
+
       setChartData({
         categories,
         series,
       })
+      // console.log("Chart Data:", categories)
     } catch (error) {
       console.error('Failed to fetch chart data', error)
     }
   }
 
+  const updateSecondSelectOptions = () => {
+    switch (filterType) {
+      case 'daily':
+        setSecondSelectOptions(['8 days','16 days']);
+        setMonthCount('8 day');
+        break;
+      case 'weekly':
+        setSecondSelectOptions(['4 weeks', '8 weeks', '12 weeks']);
+        setMonthCount('4 weeks');
+        break;
+      case 'monthly':
+        setSecondSelectOptions(['6 months', '12 months']);
+        setMonthCount('6 months');
+        break;
+      case 'yearly':
+        setSecondSelectOptions(['4 years', '6 years']);
+        setMonthCount('4 years');
+        break;
+      default:
+        setSecondSelectOptions(['6', '12'])
+    }
+  }
   const fetchUrl = async () => {
     try {
       if (auth && auth.api_token) {
@@ -152,7 +175,8 @@ const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
 
   useEffect(() => {
     fetchUrl();
-  }, []);
+    updateSecondSelectOptions();
+  }, [filterType]);
 
   useEffect(() => {
     if (selectedUrl) {
@@ -195,69 +219,102 @@ const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
     }
   }
 
-  const handleRender = () =>{
-    if (error400Id){
+  const handleRender = () => {
+    if (error400Id) {
       navigate(`/websiteurl/${error400Id}`)
     }
   }
 
   const handleNotRender = () => {
-    if (error400Id){
+    if (error400Id) {
+      navigate(`/websiteurl/${error400Id}`)
+    }
+  }
+
+  const handleTotal = () => {
+    if (error400Id) {
       navigate(`/websiteurl/${error400Id}`)
     }
   }
   return (
     <div className={`card ${className}`}>
       {/* begin::Beader */}
-      <div className='card-header border-0 py-5 position-relative'>
-        <h5 className='card-title align-items-start flex-column'>
-          <span className='card-label fw-bold fs-5 mb-1'>
-            <select
-              value={selectedUrl}
-              className="form-select form-select-sm"
-              onChange={(e) => {
-                const newUrl = e.target.value;
-                setSelectedUrl(newUrl);
-                fetchChartData(newUrl);
-              }}
-            >
-              {urls.map((url) => (
-                <option key={url._id} value={url.url}>
-                  {url.url}
-                </option>
-              ))}
-            </select>
-          </span>
+      <div className="card-header border-0 py-5">
+        <div className="row w-100 align-items-center g-3 mt-0">
+          {/* URL Dropdown */}
+          <div className="col-12 col-md-4 mt-0 pe-0">
+            <div className="card-title align-items-start flex-column me-0">
+              <div className="card-label fw-bold fs-5 w-100 me-0">
+                <select
+                  value={selectedUrl}
+                  className="form-select form-select-sm"
+                  onChange={(e) => {
+                    const newUrl = e.target.value;
+                    setSelectedUrl(newUrl);
+                    fetchChartData(newUrl);
+                  }}
+                >
+                  {urls.map((url) => (
+                    <option key={url._id} value={url.url}>
+                      {url.url}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
-          <span className='text-muted fw-semibold fs-7'></span>
-        </h5>
+          {/* Month Count Dropdown */}
+          <div className="col-6 col-md-4 mt-0">
+            <div className="d-flex align-items-center">
+              <select
+                value={monthCount}
+                className="form-select form-select-sm"
+                onChange={(e) => setMonthCount(e.target.value)}
+              >
+                {secondSelectOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-        <div className='d-flex align-items-center ms-420 position-absolute'>
-          <select name="" id="" className="form-select form-select-sm" onChange={(e) => setMonthCount(e.target.value)}>
-            <option value="6">6 months</option>
-            <option value="12">12 months</option>
-          </select>
-        </div>
-        <div className='card-toolbar '>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value as 'daily' | 'today' | 'monthly' | 'weekly' | 'yearly')}
-            className="form-select form-select-sm"
-          >
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-
+          {/* Filter Type Dropdown */}
+          <div className="col-6 col-md-4 mt-0 pe-0 ps-0">
+            <div className="card-toolbar">
+              <select
+                value={filterType}
+                onChange={(e) =>
+                  setFilterType(e.target.value as 'daily' | 'today' | 'monthly' | 'weekly' | 'yearly')
+                }
+                className="form-select form-select-sm"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
       {/* end::Header */}
 
       {/* begin::Body */}
-      <div className='card-body d-flex flex-column'>
+      <div className='card-body d-flex flex-column '>
         {/* begin::Chart */}
-        <div ref={chartRef} className='mixed-widget-5-chart card-rounded-top'></div>
+        <div ref={chartRef} className='mixed-widget-5-chart card-rounded-top' >
+
+        </div>
+        {/* <div style={{ textAlign: 'center', marginTop: '10px' }} className='text-center mt-4 d-flex justify-content-between'>
+          {chartData.categories.map((month, index) => (
+            <span key={index} style={{ margin: '0 10px', fontSize: '14px', color: '#555' }}>
+              {month}
+            </span>
+          ))}
+        </div> */}
         {/* end::Chart */}
 
         {/* begin::Items */}
@@ -320,45 +377,54 @@ const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
           {/* end::Item */}
         </div>
         {/* end::Items */}
-        <div className='row g-0'>
-          <div className='col bg-light-warning px-6 py-8 rounded-2 me-7 mb-7'>
-            <KTIcon iconName='chart-simple' className='fs-3x text-warning d-block my-2' />
-            <div className='text-warning fw-semibold fs-6'>
-              Total Urls :
-              <span className='ms-2'>{totalItems}</span>
+        <div className='row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3'>
+          <div className='col'>
+            <div className='bg-light-warning px-6 py-8 rounded-2'>
+              <KTIcon iconName='chart-simple' className='fs-3x text-warning d-block my-2' />
+              <div onClick={handleTotal} className='text-warning fw-semibold fs-6 cursor-pointer'>
+                Total Urls :
+                <span className='ms-2'>{totalItems}</span>
+              </div>
             </div>
           </div>
-          <div className='col bg-light-success px-6 py-8 rounded-2 me-7 mb-7'>
-            <KTIcon iconName='sms' className='fs-3x text-success d-block my-2' />
-            <div onClick={handleRender} className='text-success fw-semibold fs-6 mt-2 cursor-pointer'>
-              Rendered :
-              <span className='ms-2'>{renderedPages}</span>
+          <div className='col'>
+            <div className='bg-light-info px-6 py-8 rounded-2'>
+              <KTIcon iconName='sms' className='fs-3x text-info d-block my-2' />
+              <div onClick={handleRender} className='text-info fw-semibold fs-6 mt-2 cursor-pointer'>
+                Rendered :
+                <span className='ms-2'>{renderedPages}</span>
+              </div>
             </div>
           </div>
-
-          <div className='col bg-light-success px-6 py-8 rounded-2 me-7 mb-7'>
-            <KTIcon iconName='sms' className='fs-3x text-success d-block my-2 ' />
-            <div onClick={handleNotRender} className='text-success fw-semibold fs-6 mt-2 cursor-pointer'>
-              Not Rendered : 
-              <span className='ms-2'>{notRenderedPages}</span>
+          <div className='col'>
+            <div className='bg-light-primary px-6 py-8 rounded-2'>
+              <KTIcon iconName='sms' className='fs-3x text-primary d-block my-2' />
+              <div onClick={handleNotRender} className='text-primary fw-semibold fs-6 mt-2 cursor-pointer'>
+                Not Rendered :
+                <span className='ms-2'>{notRenderedPages}</span>
+              </div>
             </div>
           </div>
-
-          <div className='col bg-light-danger px-6 py-8 rounded-2 me-7 mb-7'>
-            <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
-            <div onClick={handleError400} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
-              Error 400 :
-              <span className='ms-2'>{error400Total}</span>
+          <div className='col'>
+            <div className='bg-light-danger px-6 py-8 rounded-2'>
+              <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
+              <div onClick={handleError400} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
+                400 :
+                <span className='ms-2'>{error400Total}</span>
+              </div>
             </div>
           </div>
-          <div className='col bg-light-danger px-6 py-8 rounded-2  mb-7'>
-            <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
-            <div onClick={handleError500} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
-              Error 500 :
-              <span className='ps-3'>{error500Total}</span>
+          <div className='col'>
+            <div className='bg-light-danger px-6 py-8 rounded-2'>
+              <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
+              <div onClick={handleError500} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
+                500 :
+                <span className='ps-3'>{error500Total}</span>
+              </div>
             </div>
           </div>
         </div>
+
       </div>
       {/* end::Body */}
     </div>
@@ -443,7 +509,7 @@ const chart1Options = (chartColor: string, chartHeight: string, data: { categori
     },
     yaxis: {
       min: 0,
-      // max: Math.max(...chartData.data) + 10 || 100,
+      // max: Math.max(data.categories) + 10 || 100,
       labels: {
         show: false,
         style: {

@@ -20,19 +20,27 @@ const getCrawlSession = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const search = req.query.search || '';
+        const sortOrder = req.query.order === "desc" ? -1 : 1;
+        const statusFilter = req.query.status;
 
         const filter = {
-            $or:[
-                ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search}]: []),
-                { status: new RegExp(search, 'i') },
-                ...(Number.isInteger(Number(search)) ? [{ crawl_depth: search }] : []),
-            ] 
+            $and: [
+                {
+                    $or: [
+                        ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search }] : []),
+                        { status: new RegExp(search, 'i') },
+                        ...(Number.isInteger(Number(search)) ? [{ crawl_depth: search }] : []),
+                    ]
+                },
+                ...(statusFilter ? [{ status: statusFilter }] : []),
+            ]
+
         }
 
         const skip = (page - 1) * limit;
         const totalCrawlSession = await CrawlSession.countDocuments(filter);
 
-        const crawlSession = await CrawlSession.find(filter).skip(skip).limit(limit);
+        const crawlSession = await CrawlSession.find(filter).skip(skip).limit(limit).sort({ crawl_depth: sortOrder });
         res.status(200).json({
             success: true,
             items: crawlSession,
@@ -61,4 +69,4 @@ const deleteCrawlSession = async (req, res) => {
     }
 }
 
-module.exports = { addCrawlSession,getCrawlSession,deleteCrawlSession }
+module.exports = { addCrawlSession, getCrawlSession, deleteCrawlSession }

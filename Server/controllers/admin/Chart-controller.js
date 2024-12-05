@@ -56,10 +56,15 @@ const getChartData = async (req, res) => {
         return res.status(400).json({ error: 'URL and filterType query parameters are required' });
     }
 
-    const monthsToInclude = parseInt(monthCount, 10) || 5;
+    const rangeCount =
+        filterType === 'daily' ? parseInt(monthCount, 10) || 6 :
+            filterType === 'weekly' ? parseInt(monthCount, 10) || 4 :
+                filterType === 'yearly' ? parseInt(monthCount, 10) || 2 :
+                    parseInt(monthCount, 10) || 6;
+    // const monthsToInclude = parseInt(monthCount, 10) || 5;
 
     try {
-        const { startDate, endDate } = getDateRange(filterType);
+        const { startDate, endDate } = getDateRange(filterType, rangeCount);
 
         const urlDetails = await WebsiteUrl.findOne({ parent_url });
 
@@ -90,20 +95,12 @@ const getChartData = async (req, res) => {
 
         const error400Total = error400Data.reduce((acc, item) => acc + item.count, 0);
 
-        const groupKey =
-            filterType === 'weekly'
-                ? {
-                    weekStart: { $dateTrunc: { date: '$created_at', unit: 'week', binSize: 1, timezone: 'UTC' } },
-                }
-                : filterType === 'monthly'
-                    ? { month: { $month: '$created_at' }, year: { $year: '$created_at' } }
-                    : filterType === 'daily'
-                        ? { date: { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } } }
-                        : filterType === 'yearly'
-                            ? { year: { $year: '$created_at' } }
-                            : filterType === 'today'
-                                ? null
-                                : null;
+        const groupKey = {
+            daily: { date: { $dateToString: { format: '%Y-%m-%d', date: '$created_at' } } },
+            weekly: { weekStart: { $dateTrunc: { date: '$created_at', unit: 'week', binSize: 1, timezone: 'UTC' } } },
+            monthly: { month: { $month: '$created_at' }, year: { $year: '$created_at' } },
+            yearly: { year: { $year: '$created_at' } }
+        }[filterType] || null;
 
         const matchQuery = {
             parent_url,
@@ -130,19 +127,31 @@ const getChartData = async (req, res) => {
                     },
                     { $sort: { '_id.year': 1, '_id.month': 1, '_id.weekStart': 1 } },
                 ]
-                : [{
-                    $group: {
-                        _id: null,
-                        totalPages: { $sum: 1 },
-                        renderedPages: {
-                            $sum: { $cond: [{ $eq: ['$status', 'Rendered'] }, 1, 0] },
-                        },
-                        notRenderedPages: {
-                            $sum: { $cond: [{ $ne: ['$status', 'Rendered'] }, 1, 0] },
+                : [
+                    {
+                        $group: {
+                            _id: {
+                                weekStart: { $dateTrunc: { date: "$date", unit: "week" } }
+                            },
+                            totalPages: { $sum: "$totalPages" },
+                            renderedPages: { $sum: "$renderedPages" },
+                            notRenderedPages: { $sum: "$notRenderedPages" },
                         },
                     },
-                },
                 ]),
+            // [{
+            //     $group: {
+            //         _id: null,
+            //         totalPages: { $sum: 1 },
+            //         renderedPages: {
+            //             $sum: { $cond: [{ $eq: ['$status', 'Rendered'] }, 1, 0] },
+            //         },
+            //         notRenderedPages: {
+            //             $sum: { $cond: [{ $ne: ['$status', 'Rendered'] }, 1, 0] },
+            //         },
+            //     },
+            // },
+            // ]),
         ]);
 
         let response;
@@ -152,7 +161,7 @@ const getChartData = async (req, res) => {
 
             // Create placeholders for the last 4 years
             const years = [];
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < rangeCount; i++) {
                 const year = currentYear - i;
                 years.push({
                     year,
@@ -162,7 +171,6 @@ const getChartData = async (req, res) => {
                 });
             }
 
-            // Map stats from the database
             const statsMap = new Map();
             stats.forEach((stat) => {
                 statsMap.set(stat._id.year, {
@@ -173,9 +181,8 @@ const getChartData = async (req, res) => {
                 });
             });
 
-            // Merge stats into years, replacing placeholders with actual data
             const mergedYears = years.map((yearData) => {
-                return statsMap.get(yearData.year) || yearData; // Replace placeholder if stat exists
+                return statsMap.get(yearData.year) || yearData;
             });
 
             mergedYears.sort((a, b) => a.year - b.year);
@@ -186,36 +193,43 @@ const getChartData = async (req, res) => {
                 },
             };
         } else if (filterType === 'daily') {
-            const allDates = generateDateRange(startDate, endDate);
+            const now = new Date();
+            const days = [];
 
-            const today = new Date().toISOString().split('T')[0];
-            if (!allDates.includes(today)) {
-                allDates.push(today);
+            for (let i = 0; i < rangeCount; i++) {
+                const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000); 
+                days.push({
+                    date: date.toISOString().split('T')[0],
+                    total_pages: 0,
+                    rendered_pages: 0,
+                    not_rendered_pages: 0,
+                });
             }
 
-            const statsMap = stats.reduce((acc, stat) => {
-                acc[stat._id.date] = {
+            const statsMap = new Map();
+            stats.forEach((stat) => {
+                statsMap.set(stat._id.date, {
+                    date: stat._id.date,
                     total_pages: stat.totalPages,
                     rendered_pages: stat.renderedPages,
                     not_rendered_pages: stat.notRenderedPages,
-                };
-                return acc;
-            }, {});
+                });
+            });
 
-            const lastSixDays = allDates.slice(-6);
+            const mergedDays = days.map((dayData) => {
+                const existingData = statsMap.get(dayData.date);
+                return existingData || dayData;
+            });
+
+            const sortdaily=mergedDays.sort((a, b) => new Date(a.date) - new Date(b.date));
 
             response = {
                 daily: {
-                    date_range: `${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`,
-                    details: lastSixDays.map((date) => ({
-                        date,
-                        total_pages: statsMap[date]?.total_pages || 0,
-                        rendered_pages: statsMap[date]?.rendered_pages || 0,
-                        not_rendered_pages: statsMap[date]?.not_rendered_pages || 0,
-                    })),
+                    details: sortdaily,
                 },
             };
-        } else if (filterType === 'today') {
+        }
+        else if (filterType === 'today') {
             const stat = stats[0] || {
                 totalPages: 0,
                 renderedPages: 0,
@@ -231,24 +245,64 @@ const getChartData = async (req, res) => {
                 },
             };
         } else if (filterType === 'weekly') {
+            const now = new Date();
+            const weeks = [];
+        
+            function getISOWeekStart(date) {
+                const day = date.getDay(); 
+                const diff = (day === 0 ? -6 : 1) - day; 
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() + diff); 
+                weekStart.setHours(0, 0, 0, 0); 
+                return weekStart;
+            }
+        
+            for (let i = 0; i < rangeCount; i++) {
+                const currentWeekStart = getISOWeekStart(new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000));
+                const weekEnd = new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000); 
+                weeks.push({
+                    week_start: currentWeekStart.toISOString().split('T')[0],
+                    week_end: weekEnd.toISOString().split('T')[0],
+                    total_pages: 0,
+                    rendered_pages: 0,
+                    not_rendered_pages: 0,
+                });
+            }
+        
+            // Build statsMap
+            const statsMap = new Map();
+            stats.forEach((stat) => {
+                const weekStartStr = getISOWeekStart(new Date(stat._id.weekStart)).toISOString().split('T')[0];
+                statsMap.set(weekStartStr, {
+                    week_start: weekStartStr,
+                    week_end: new Date(new Date(stat._id.weekStart).getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    total_pages: stat.totalPages,
+                    rendered_pages: stat.renderedPages,
+                    not_rendered_pages: stat.notRenderedPages,
+                });
+            });
+        
+            const mergedWeeks = weeks.map((weekData) => {
+                const existingData = statsMap.get(weekData.week_start);
+                return existingData || weekData;
+            });
+        
+            const sortedWeeks = mergedWeeks.sort((a, b) => new Date(a.week_start) - new Date(b.week_start));
+
             response = {
                 weekly: {
-                    details: stats.map((stat) => ({
-                        week_start: new Date(stat._id.weekStart),
-                        week_end: new Date(new Date(stat._id.weekStart).getTime() + 6 * 24 * 60 * 60 * 1000),
-                        total_pages: stat.totalPages,
-                        rendered_pages: stat.renderedPages,
-                        not_rendered_pages: stat.notRenderedPages,
-                    })),
+                    details: sortedWeeks,
                 },
             };
-        } else if (filterType === 'monthly') {
+        }
+               
+        else if (filterType === 'monthly') {
             const now = new Date();
             const months = [];
-            for (let i = 0; i < monthsToInclude; i++) {
-                const date = new Date(now.getFullYear(), now.getMonth() - i, 1); // Current and previous month
+            for (let i = 0; i < rangeCount; i++) {
+                const date = new Date(now.getFullYear(), now.getMonth() - i, 1); 
                 months.push({
-                    month: date.toLocaleString('default', { month: 'long' }),
+                    month: date.toLocaleString('default', { month: 'short' }),
                     year: date.getFullYear(),
                     total_pages: 0,
                     rendered_pages: 0,
@@ -261,7 +315,7 @@ const getChartData = async (req, res) => {
             stats.forEach((stat) => {
                 const key = `${stat._id.year}-${stat._id.month}`;
                 statsMap.set(key, {
-                    month: new Date(stat._id.year, stat._id.month - 1).toLocaleString('default', { month: 'long' }),
+                    month: new Date(stat._id.year, stat._id.month - 1).toLocaleString('default', { month: 'short' }),
                     year: stat._id.year,
                     total_pages: stat.totalPages,
                     rendered_pages: stat.renderedPages,
@@ -269,7 +323,6 @@ const getChartData = async (req, res) => {
                 });
             });
 
-            // Replace placeholders with actual data where available
             const mergedMonths = months.map((monthData) => {
                 const key = `${monthData.year}-${new Date(Date.parse(monthData.month + " 1, " + monthData.year)).getMonth() + 1}`;
                 return statsMap.get(key) || monthData;

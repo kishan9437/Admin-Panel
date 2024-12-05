@@ -12,6 +12,7 @@ import Dropdown from 'react-bootstrap/Dropdown'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useSearchParams } from 'react-router-dom'
+import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 
 interface error400 {
     website_url: string;
@@ -37,12 +38,14 @@ const Error400WebsitePage: React.FC = () => {
     const [searchParams] = useSearchParams()
     const id = searchParams.get('id')
     const [currentUrl, setCurrentUrl] = useState<string | null>(null)
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortColumn, setSortColumn] = useState<string>(''); // Default sort column
 
-    const getError400 = async (page: number = 1, search: string = '') => {
+    const getError400 = async (page: number = 1, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/get-error400website?page=${page}&limit=${itemsPerPage}&search=${search}`, {
+                const response = await fetch(`http://localhost:5000/api/get-error400website?page=${page}&limit=${itemsPerPage}&search=${search}&order=${order}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -51,11 +54,11 @@ const Error400WebsitePage: React.FC = () => {
                 // console.log('Fetched activities:', data);
                 setError400(data.items);
                 // setFilterError400(data.items);
-                
-                if(id){
-                    const filtered=data.items.filter((item: error400)=>item.website_id===id)
 
-                    if(filtered.length>0){
+                if (id) {
+                    const filtered = data.items.filter((item: error400) => item.website_id === id)
+
+                    if (filtered.length > 0) {
                         setCurrentUrl(filtered[0].website_url);
                     }
                     setFilterError400(filtered)
@@ -70,10 +73,17 @@ const Error400WebsitePage: React.FC = () => {
         }
     }
 
+    const handleSort = (column: string) => {
+        const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+        setSortOrder(newOrder);
+        setSortColumn(column)
+        getError400(currentPage, newOrder, column);
+    }
+
     const handlePageClick = (selectedPage: { selected: number }) => {
         const selectedPageNumber = selectedPage.selected + 1;
         setCurrentPage(selectedPageNumber);
-        getError400(selectedPageNumber);
+        getError400(selectedPageNumber, sortOrder);
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,7 +151,7 @@ const Error400WebsitePage: React.FC = () => {
     }
 
     useEffect(() => {
-        getError400(currentPage, search);
+        getError400(currentPage, sortOrder, search);
     }, [itemsPerPage, currentPage, search])
     return (
         <>
@@ -176,18 +186,48 @@ const Error400WebsitePage: React.FC = () => {
                             className="mb-3"
                         />
                     </div>
-                    <div className='overflow-x-auto shadow-sm mb-4'>
-                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
+                    <div className='overflow-x-auto shadow-sm mb-4 rounded'>
+                        <Table striped bordered hover responsive="sm" className="table">
                             <thead>
                                 <tr>
                                     {/* <th>Website Id</th> */}
-                                    <th>Website Id</th>
-                                    <th>Website url</th>
-                                    <th>Status Code</th>
-                                    <th>Error Message</th>
-                                    <th>Error Type</th>
-                                    <th>Retry Attempts </th>
-                                    <th>Timestamp</th>
+                                    {/* <th>Website Id</th> */}
+                                    <th onClick={() => handleSort('Websiteurl')} className='cursor-pointer'>
+                                        Website url
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Websiteurl' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Statuscode')} className='cursor-pointer'>
+                                        Status Code
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Statuscode' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Errormsg')} className='cursor-pointer'>
+                                        Error Message
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Errormsg' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Errortype')} className='cursor-pointer'>
+                                        Error Type
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Errortype' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Retry')} className='cursor-pointer'>
+                                        Retry Attempts
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Retry' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
+                                    <th onClick={() => handleSort('Timestamp')} className='cursor-pointer'>
+                                        Timestamp
+                                        <span className='ms-1'>
+                                            {sortColumn === 'Timestamp' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
+                                        </span>
+                                    </th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -196,7 +236,7 @@ const Error400WebsitePage: React.FC = () => {
                                     loading ? (
                                         Array(5).fill(0).map((_, index) => (
                                             <tr key={index}>
-                                                <td><Skeleton count={1} width={180} /></td>
+                                                {/* <td><Skeleton count={1} width={180} /></td> */}
                                                 <td><Skeleton count={1} width={180} /></td>
                                                 <td><Skeleton count={1} width={80} /></td>
                                                 <td><Skeleton count={1} width={80} /></td>
@@ -210,7 +250,7 @@ const Error400WebsitePage: React.FC = () => {
                                         filterError400.length > 0 ? (
                                             filterError400.map((item, index) => (
                                                 <tr key={index} className='h-50'>
-                                                    <td>{item.website_id}</td>
+                                                    {/* <td>{item.website_id}</td> */}
                                                     <td>{item.website_url}</td>
                                                     <td>{item.status_code}</td>
                                                     <td>{item.error_message}</td>
