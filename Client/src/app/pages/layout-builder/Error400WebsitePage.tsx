@@ -5,7 +5,7 @@ import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEdit, faTrash, faSync, faEllipsisH } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../modules/auth'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
@@ -35,13 +35,13 @@ const Error400WebsitePage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [searchParams] = useSearchParams()
-    const id = searchParams.get('id')
+    const location = useLocation();
+    const id = location.state.id;
     const [currentUrl, setCurrentUrl] = useState<string | null>(null)
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [sortColumn, setSortColumn] = useState<string>(''); // Default sort column
 
-    const getError400 = async (page: number = 1, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '') => {
+    const getError400 = async (page: number = currentPage, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '') => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
@@ -51,13 +51,9 @@ const Error400WebsitePage: React.FC = () => {
                     },
                 });
                 const data = await response.json();
-                // console.log('Fetched activities:', data);
-                setError400(data.items);
-                // setFilterError400(data.items);
-
+                
                 if (id) {
                     const filtered = data.items.filter((item: error400) => item.website_id === id)
-
                     if (filtered.length > 0) {
                         setCurrentUrl(filtered[0].website_url);
                     }
@@ -87,7 +83,9 @@ const Error400WebsitePage: React.FC = () => {
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearch(e.target.value);
+        const searchValue = e.target.value
+        setSearch(searchValue);
+        // getError400(page, sortOrder,search);
     }
 
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -151,7 +149,7 @@ const Error400WebsitePage: React.FC = () => {
     }
 
     useEffect(() => {
-        getError400(currentPage, sortOrder, search);
+        getError400(currentPage, sortOrder,sortColumn, search);
     }, [itemsPerPage, currentPage, search])
     return (
         <>
@@ -192,12 +190,12 @@ const Error400WebsitePage: React.FC = () => {
                                 <tr>
                                     {/* <th>Website Id</th> */}
                                     {/* <th>Website Id</th> */}
-                                    <th onClick={() => handleSort('Websiteurl')} className='cursor-pointer'>
+                                    {/* <th onClick={() => handleSort('Websiteurl')} className='cursor-pointer'>
                                         Website url
                                         <span className='ms-1'>
                                             {sortColumn === 'Websiteurl' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
                                         </span>
-                                    </th>
+                                    </th> */}
                                     <th onClick={() => handleSort('Statuscode')} className='cursor-pointer'>
                                         Status Code
                                         <span className='ms-1'>
@@ -237,7 +235,7 @@ const Error400WebsitePage: React.FC = () => {
                                         Array(5).fill(0).map((_, index) => (
                                             <tr key={index}>
                                                 {/* <td><Skeleton count={1} width={180} /></td> */}
-                                                <td><Skeleton count={1} width={180} /></td>
+                                                {/* <td><Skeleton count={1} width={180} /></td> */}
                                                 <td><Skeleton count={1} width={80} /></td>
                                                 <td><Skeleton count={1} width={80} /></td>
                                                 <td><Skeleton count={1} width={100} /></td>
@@ -251,12 +249,12 @@ const Error400WebsitePage: React.FC = () => {
                                             filterError400.map((item, index) => (
                                                 <tr key={index} className='h-50'>
                                                     {/* <td>{item.website_id}</td> */}
-                                                    <td>{item.website_url}</td>
+                                                    {/* <td>{item.website_url}</td> */}
                                                     <td>{item.status_code}</td>
                                                     <td>{item.error_message}</td>
                                                     <td>{item.error_type}</td>
                                                     <td>{item.retry_attempts}</td>
-                                                    <td>{item.timestamp}</td>
+                                                    <td>{new Date(item.timestamp).toLocaleString()}</td>
                                                     <td>
                                                         <Dropdown id='tableDropdown'>
                                                             <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>

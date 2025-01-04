@@ -1,433 +1,263 @@
 import { useEffect, useRef, FC, useState } from 'react'
 import ApexCharts, { ApexOptions } from 'apexcharts'
-import { KTIcon, toAbsoluteUrl } from '../../../helpers'
+import { KTIcon } from '../../../helpers'
 import { getCSSVariableValue } from '../../../assets/ts/_utils'
-import { Dropdown1 } from '../../content/dropdown/Dropdown1'
 import { useThemeMode } from '../../layout/theme-mode/ThemeModeProvider'
-import { Link } from 'react-router-dom'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../../../app/modules/auth'
+import { Link, useNavigate } from 'react-router-dom'
+import { DatePicker } from 'antd';
+// import 'antd/es/date-picker/style/index.css';
+import React from 'react'
+import dayjs, { Dayjs } from 'dayjs'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 
+const { RangePicker } = DatePicker;
+type RangeValue<T> = [T | null, T | null] | null;
 type Props = {
   className: string
   chartColor: string
   chartHeight: string
 }
 
-type ChartDetail = {
-  date: string;
-  total_pages: number;
-  rendered_pages: number;
-  not_rendered_pages: number;
-  month: string;
-};
+interface UrlChartData {
+  days: string;
+  totalUrl: number;
+  renderedUrl: number;
+  notRenderedUrl: number;
+  error400Count: number;
+  error500Count: number;
+}
 
-interface Urldata {
-  _id: string;
+interface UrlChartItem {
+  id: string;
   name: string;
   url: string;
-  access_key: string;
-  status: string;
+  days: string;
+  totalUrl: number;
+  renderedUrl: number;
+  notRenderedUrl: number;
+  error400Count: number;
+  error500Count: number;
+  data: UrlChartData[];
 }
+
 const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
-  const chartRef = useRef<HTMLDivElement | null>(null)
+  const [chartRefs, setChartRefs] = useState<React.RefObject<HTMLDivElement>[]>([]);
   const { mode } = useThemeMode()
-  const [chartData, setChartData] = useState({
-    categories: [] as string[],
-    series: {
-      total_pages: [] as number[],
-      rendered_pages: [] as number[],
-      not_rendered_pages: [] as number[],
-    }
-  })
-
-  const [currentUrl, setCurrentUrl] = useState('');
-  const [totalItems, setTotalItems] = useState(0)
-  const [error400Total, setError400Total] = useState(0)
-  const [error500Total, setError500Total] = useState(0)
-  const [renderedPages, setRenderedPages] = useState(0)
-  const [notRenderedPages, setNotRenderedPages] = useState(0)
-  const [error400Id, setError400Id] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { auth } = useAuth();
-  const [urls, setUrls] = useState<Urldata[]>([]);
-  const [selectedUrl, setSelectedUrl] = useState("")
-  const [monthCount, setMonthCount] = useState("6")
-  const [filterType, setFilterType] = useState<'daily' | 'today' | 'monthly' | 'weekly' | 'yearly'>('monthly');
-  const [secondSelectOptions, setSecondSelectOptions] = useState<string[]>(['6 months', '12 months']); // Default for 'monthly'
+  const [data, setData] = useState<UrlChartItem[]>([]);
+  const [dateRanges, setDateRanges] = useState<Record<string, RangeValue<Dayjs> | null>>({});
+  const [chartData, setChartData] = useState<Record<string, UrlChartItem>>({});
 
-  const fetchChartData = async (selectedParentUrl: string) => {
+  const fetchChartData = async (
+    startDate?: Date,
+    endDate?: Date,
+    id?: string
+  ) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/chart-data?parent_url=${selectedParentUrl}&filterType=${filterType}&monthCount=${monthCount}`);
+      console.log('Fetching chart data with:', { startDate, endDate });
 
-      const data = await response.json();
-      // console.log('API Response:', data.notRenderedPages);
-      setError400Id(data.error400Data[0]._id)
-
-      // console.log(data.);
-      setError400Total(data.error400Total)
-      setError500Total(data.error500Total)
-      setCurrentUrl(data.parent_url)
-      setTotalItems(data.totalItems)
-      setRenderedPages(data.renderedPages)
-      setNotRenderedPages(data.notRenderedPages)
-
-      let categories: string[] = [];
-      let series = {
-        total_pages: [] as number[],
-        rendered_pages: [] as number[],
-        not_rendered_pages: [] as number[],
-      };
-
-      if (filterType === "today") {
-        const detail = data[filterType];
-        if (detail) {
-          categories = [detail.date];
-          series = {
-            total_pages: [detail.total_pages],
-            rendered_pages: [detail.rendered_pages],
-            not_rendered_pages: [detail.not_rendered_pages],
-          };
-        }
-      } else {
-        const details = data[filterType]?.details || [];
-        if (filterType === 'weekly') {
-          categories = details.map(
-            (item: { week_start: string; week_end: string }) =>
-              `${new Date(item.week_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${new Date(item.week_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-          );
-        } else if (filterType === "monthly") {
-          categories = details.map((item: { month: string }) => item.month);
-        } else if (filterType === "yearly") {
-          categories = details.map((item: { year: number }) => item.year.toString());
-        } else {
-          categories = details.map((item: { date: string }) =>
-            new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) // e.g., "Nov 23"
-          );
-        }
-
-        // console.log("Chart Categories:", categories);
-        series = {
-          total_pages: details.map((item: { total_pages: number }) => item.total_pages),
-          rendered_pages: details.map((item: { rendered_pages: number }) => item.rendered_pages),
-          not_rendered_pages: details.map((item: { not_rendered_pages: number }) => item.not_rendered_pages),
-        };
+      if (!startDate || !endDate) {
+        console.error('Start date or end date is missing');
+        return;
       }
 
+      const formattedStartDate = startDate.toISOString();
+      const formattedEndDate = endDate.toISOString();
 
-      setChartData({
-        categories,
-        series,
-      })
-      // console.log("Chart Data:", categories)
+      const response = await fetch(`http://localhost:5000/api/get-url-chart?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (id && typeof id === "string") {
+        // Update only the specific chart's data
+        setChartData((prev) => ({
+          ...prev,
+          [id]: result.items.find((item: UrlChartItem) => item.id === id),
+        }));
+      } else {
+        setData(result.items || [])
+      }
+      console.log(result.items);
+      setChartRefs(result.items.map(() => React.createRef<HTMLDivElement>()));
+
     } catch (error) {
       console.error('Failed to fetch chart data', error)
     }
   }
 
-  const updateSecondSelectOptions = () => {
-    switch (filterType) {
-      case 'daily':
-        setSecondSelectOptions(['8 days','16 days']);
-        setMonthCount('8 day');
-        break;
-      case 'weekly':
-        setSecondSelectOptions(['4 weeks', '8 weeks', '12 weeks']);
-        setMonthCount('4 weeks');
-        break;
-      case 'monthly':
-        setSecondSelectOptions(['6 months', '12 months']);
-        setMonthCount('6 months');
-        break;
-      case 'yearly':
-        setSecondSelectOptions(['4 years', '6 years']);
-        setMonthCount('4 years');
-        break;
-      default:
-        setSecondSelectOptions(['6', '12'])
-    }
-  }
-  const fetchUrl = async () => {
-    try {
-      if (auth && auth.api_token) {
-        const response = await fetch(`http://localhost:5000/api/website-url`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${auth.api_token}`
-          }
-        })
-        const result = await response.json()
-        //  console.log('urls data', result.data)
+  useEffect(() => {
+    const initialRange: RangeValue<Dayjs> = [dayjs().startOf("week"), dayjs().endOf("week")];
 
-        if (result && result.success && result.data) {
-          setUrls(result.data)
-          setSelectedUrl(result.data[0]?.url || "")
+    const initialRanges: Record<string, RangeValue<Dayjs> | null> = {};
+
+    data.forEach((item) => {
+      initialRanges[item.id] = initialRange;
+    });
+    setDateRanges(initialRanges);
+    fetchChartData(initialRange[0]?.toDate(), initialRange[1]?.toDate());
+  }, []);
+
+  const handleDateRangeChange = (dates: RangeValue<Dayjs>, dateStrings: [string, string], id: string) => {
+    setDateRanges((prev) => ({
+      ...prev,
+      [id]: dates,
+    }));
+
+    if (dates && dates[0] && dates[1]) {
+      fetchChartData(dates[0].toDate(), dates[1].toDate(), id);
+    }
+  };
+
+  useEffect(() => {
+    const chartInstances: Record<string, ApexCharts> = {};
+
+    Object.keys(chartData).forEach((id) => {
+      const chartRef = chartRefs[data.findIndex((item) => item.id === id)]?.current;
+
+      if (chartRef) {
+        const item = chartData[id];
+        if (item) {
+          const chart = new ApexCharts(
+            chartRef,
+            chart1Options(chartColor, chartHeight, {
+              categories: item.data.map((d: UrlChartData) => d.days),
+              series: {
+                total_pages: item.data.map((d: UrlChartData) => d.totalUrl),
+                rendered_pages: item.data.map((d: UrlChartData) => d.renderedUrl),
+                not_rendered_pages: item.data.map((d: UrlChartData) => d.notRenderedUrl),
+              },
+            })
+          );
+
+          chart.render();
+          chartInstances[id] = chart;
         }
       }
-      else {
-        console.error('No valid auth token available');
-        return;
-      }
-    } catch (error) {
-      console.error('Failed to fetch URL', error)
-    }
-  }
-
-  useEffect(() => {
-    fetchUrl();
-    updateSecondSelectOptions();
-  }, [filterType]);
-
-  useEffect(() => {
-    if (selectedUrl) {
-      fetchChartData(selectedUrl);
-    }
-  }, [selectedUrl, filterType, monthCount])
-
-  const refreshChart = () => {
-    if (!chartRef.current) {
-      return
-    }
-
-    const chart1 = new ApexCharts(chartRef.current, chart1Options(chartColor, chartHeight, chartData))
-    if (chart1) {
-      chart1.render()
-    }
-
-    return chart1
-  }
-
-  useEffect(() => {
-    const chart1 = refreshChart()
-
+    });
     return () => {
-      if (chart1) {
-        chart1.destroy()
-      }
-    }
-  }, [chartRef, mode, chartData])
+      Object.values(chartInstances).forEach((chart) => chart.destroy());
+    };
+  }, [chartData, chartRefs, mode, chartColor, chartHeight, data]);
 
-  const handleError400 = () => {
-    if (error400Id) {
-      navigate(`/400Error?id=${error400Id}`)
-    }
+  const handleError400 = (id: string) => {
+    navigate(`/400Error?id=${id}`)
   }
 
-  const handleError500 = () => {
-    if (error400Id) {
-      navigate(`/500Error?id=${error400Id}`)
-    }
+  const handleError500 = (id: string) => {
+    navigate(`/500Error?id=${id}`)
   }
 
-  const handleRender = () => {
-    if (error400Id) {
-      navigate(`/websiteurl/${error400Id}`)
-    }
+  const handleRender = (id: string) => {
+    navigate(`/websiteurl/${id}`)
   }
 
-  const handleNotRender = () => {
-    if (error400Id) {
-      navigate(`/websiteurl/${error400Id}`)
-    }
+  const handleNotRender = (id: string) => {
+    navigate(`/websiteurl/${id}`)
   }
 
-  const handleTotal = () => {
-    if (error400Id) {
-      navigate(`/websiteurl/${error400Id}`)
-    }
+  const handleTotal = (id: string) => {
+    navigate(`/websiteurl/${id}`)
   }
+
   return (
     <div className={`card ${className}`}>
-      {/* begin::Beader */}
-      <div className="card-header border-0 py-5">
-        <div className="row w-100 align-items-center g-3 mt-0">
-          {/* URL Dropdown */}
-          <div className="col-12 col-md-4 mt-0 pe-0">
-            <div className="card-title align-items-start flex-column me-0">
-              <div className="card-label fw-bold fs-5 w-100 me-0">
-                <select
-                  value={selectedUrl}
-                  className="form-select form-select-sm"
-                  onChange={(e) => {
-                    const newUrl = e.target.value;
-                    setSelectedUrl(newUrl);
-                    fetchChartData(newUrl);
-                  }}
+      {data.map((item, index) => (
+        <div key={index}>
+          <div className="card-header border-0 py-5">
+            <div className="row w-100 align-items-center  g-3 mt-0">
+              <div className="col-12 col-md-6 mt-0 pe-0">
+                <Link to="/websiteurl"
+                  state={{ id: item.id, name: item.name, url: item.url, previousPath: "/dashboard" }}
+                  className='breadcrumb-icon'
                 >
-                  {urls.map((url) => (
-                    <option key={url._id} value={url.url}>
-                      {url.url}
-                    </option>
-                  ))}
-                </select>
+                  <div className="d-flex align-items-center flex-wrap me-0 py-2">
+                    <div className="card-label fw-bold fs-5 me-0">
+                      <div className='d-flex'>
+                        <h5 className='m-0'>{item.name}</h5>
+                        <div className='ms-2'>
+                          <FontAwesomeIcon icon={faArrowRight}  className='breadcrumb-icon-arrow  ps-1' />
+                        </div>
+                      </div>
+                      <span className='text-muted text-truncate d-block'> {item.url}</span>
+                    </div>
+                  </div>
+                </Link>
+
               </div>
-            </div>
-          </div>
-
-          {/* Month Count Dropdown */}
-          <div className="col-6 col-md-4 mt-0">
-            <div className="d-flex align-items-center">
-              <select
-                value={monthCount}
-                className="form-select form-select-sm"
-                onChange={(e) => setMonthCount(e.target.value)}
-              >
-                {secondSelectOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Filter Type Dropdown */}
-          <div className="col-6 col-md-4 mt-0 pe-0 ps-0">
-            <div className="card-toolbar">
-              <select
-                value={filterType}
-                onChange={(e) =>
-                  setFilterType(e.target.value as 'daily' | 'today' | 'monthly' | 'weekly' | 'yearly')
-                }
-                className="form-select form-select-sm"
-              >
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* end::Header */}
-
-      {/* begin::Body */}
-      <div className='card-body d-flex flex-column '>
-        {/* begin::Chart */}
-        <div ref={chartRef} className='mixed-widget-5-chart card-rounded-top' >
-
-        </div>
-        {/* <div style={{ textAlign: 'center', marginTop: '10px' }} className='text-center mt-4 d-flex justify-content-between'>
-          {chartData.categories.map((month, index) => (
-            <span key={index} style={{ margin: '0 10px', fontSize: '14px', color: '#555' }}>
-              {month}
-            </span>
-          ))}
-        </div> */}
-        {/* end::Chart */}
-
-        {/* begin::Items */}
-        <div className='mt-5'>
-          {/* begin::Item */}
-          <div className='d-flex flex-stack mb-1 mt-5'>
-            {/* begin::Section */}
-            <div className='d-flex align-items-center me-2'>
-              {/* begin::Symbol */}
-              {/* <div className='symbol symbol-50px me-3'>
-                <div className='symbol-label bg-light'>
-                  <img
-                    src={toAbsoluteUrl('media/svg/brand-logos/plurk.svg')}
-                    alt=''
-                    className='h-50'
+              <div className="col-12 col-md-6 mt-0 pe-0 ps-0 justify-content-end">
+                <div className='d-flex justify-content-end'>
+                  <RangePicker
+                    key={item.id}
+                    value={dateRanges[item.id] || null}
+                    format="YYYY-MM-DD"
+                    onChange={(dates, dateStrings) => handleDateRangeChange(dates, dateStrings, item.id)}
                   />
                 </div>
-              </div> */}
-              {/* end::Symbol */}
-
-              {/* begin::Title */}
-              {/* <div className='d-flex align-items-center'>
-                <span className='fs-6 text-gray-800 fw-bold me-2 '>
-                  Total Urls :
-                </span>
-                <div className='badge fw-semibold py-4 fs-6'>
-                  <span>{totalItems}</span>
-                </div>
-              </div> */}
-              {/* end::Title */}
+              </div>
             </div>
-            {/* end::Section */}
           </div>
-          {/* end::Item */}
 
-          {/* begin::Item */}
-          {/* <div className='d-flex flex-stack mb-1'>
-            <div className='d-flex align-items-center me-2'>
-              <div className='d-flex align-items-center '>
-                <div onClick={handleError400} className='fs-6 text-gray-800 text-hover-primary fw-bold cursor-pointer'>
-                  Error 400 Total :
-                  <span className='ps-3'>{error400Total}</span>
+          <div className='card-body d-flex flex-column '>
+            <div ref={chartRefs[index]} className='mixed-widget-5-chart card-rounded-top' ></div>
+            {/* <div ref={chartRef} className='mixed-widget-5-chart card-rounded-top' ></div> */}
+            <div className='row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3 mt-5'>
+              <div className='col'>
+                <div className='bg-light-warning px-6 py-8 rounded-2'>
+                  <KTIcon iconName='chart-simple' className='fs-3x text-warning d-block my-2' />
+                  <div onClick={() => handleTotal(item.id)} className='text-warning fw-semibold fs-6 cursor-pointer'>
+                    Total Urls :
+                    <span className='ms-2'>{chartData[item.id]?.data.reduce((sum: number, d: UrlChartData) => sum + d.totalUrl, 0) || 0}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div> */}
-          {/* end::Item */}
-
-          {/* begin::Item */}
-          {/* <div className='d-flex flex-stack'>
-            <div className='d-flex align-items-center me-2 mt-2'>
-              <div className='py-1'>
-                <div onClick={handleError500} className='fs-6 text-gray-800 text-hover-primary fw-bold cursor-pointer'>
-                  Error 500 Total :
-                  <span className='ps-3'>{error500Total}</span>
+              <div className='col'>
+                <div className='bg-light-info px-6 py-8 rounded-2'>
+                  <KTIcon iconName='sms' className='fs-3x text-info d-block my-2' />
+                  <div onClick={() => handleRender(item.id)} className='text-info fw-semibold fs-6 mt-2 cursor-pointer'>
+                    Rendered :
+                    <span className='ms-2'>{chartData[item.id]?.data.reduce((sum: number, d: UrlChartData) => sum + d.renderedUrl, 0) || 0}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div> */}
-          {/* end::Item */}
-        </div>
-        {/* end::Items */}
-        <div className='row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3'>
-          <div className='col'>
-            <div className='bg-light-warning px-6 py-8 rounded-2'>
-              <KTIcon iconName='chart-simple' className='fs-3x text-warning d-block my-2' />
-              <div onClick={handleTotal} className='text-warning fw-semibold fs-6 cursor-pointer'>
-                Total Urls :
-                <span className='ms-2'>{totalItems}</span>
+              <div className='col'>
+                <div className='bg-light-primary px-6 py-8 rounded-2'>
+                  <KTIcon iconName='sms' className='fs-3x text-primary d-block my-2' />
+                  <div onClick={() => handleNotRender(item.id)} className='text-primary fw-semibold fs-6 mt-2 cursor-pointer'>
+                    Not Rendered :
+                    <span className='ms-2'>{chartData[item.id]?.data.reduce((sum: number, d: UrlChartData) => sum + d.notRenderedUrl, 0) || 0}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className='col'>
-            <div className='bg-light-info px-6 py-8 rounded-2'>
-              <KTIcon iconName='sms' className='fs-3x text-info d-block my-2' />
-              <div onClick={handleRender} className='text-info fw-semibold fs-6 mt-2 cursor-pointer'>
-                Rendered :
-                <span className='ms-2'>{renderedPages}</span>
+              <div className='col'>
+                <div className='bg-light-danger px-6 py-8 rounded-2'>
+                  <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
+                  <div onClick={() => handleError400(item.id)} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
+                    400 :
+                    <span className='ms-2'>{chartData[item.id]?.data.reduce((sum: number, d: UrlChartData) => sum + d.error400Count, 0) || 0}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          <div className='col'>
-            <div className='bg-light-primary px-6 py-8 rounded-2'>
-              <KTIcon iconName='sms' className='fs-3x text-primary d-block my-2' />
-              <div onClick={handleNotRender} className='text-primary fw-semibold fs-6 mt-2 cursor-pointer'>
-                Not Rendered :
-                <span className='ms-2'>{notRenderedPages}</span>
-              </div>
-            </div>
-          </div>
-          <div className='col'>
-            <div className='bg-light-danger px-6 py-8 rounded-2'>
-              <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
-              <div onClick={handleError400} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
-                400 :
-                <span className='ms-2'>{error400Total}</span>
-              </div>
-            </div>
-          </div>
-          <div className='col'>
-            <div className='bg-light-danger px-6 py-8 rounded-2'>
-              <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
-              <div onClick={handleError500} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
-                500 :
-                <span className='ps-3'>{error500Total}</span>
+              <div className='col'>
+                <div className='bg-light-danger px-6 py-8 rounded-2'>
+                  <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
+                  <div onClick={() => handleError500(item.id)} className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
+                    500 :
+                    <span className='ps-3'>{chartData[item.id]?.data.reduce((sum: number, d: UrlChartData) => sum + d.error500Count, 0) || 0}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      ))}
 
-      </div>
       {/* end::Body */}
-    </div>
+    </div >
   )
 }
 
@@ -439,14 +269,14 @@ const chart1Options = (chartColor: string, chartHeight: string, data: { categori
 
   return {
     series: [
-      //{ name: 'Total Pages', data: data.series.total_pages || [0] },
+      //{name: 'Total Pages', data: data.series.total_pages || [0] },
       { name: 'Rendered Pages', data: data.series.rendered_pages || [0] },
       { name: 'Not Rendered Pages', data: data.series.not_rendered_pages || [0] },
     ],
     chart: {
       fontFamily: 'inherit',
       type: 'line',
-      height: chartHeight,
+      height: 150,
       toolbar: {
         show: false,
       },

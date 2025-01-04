@@ -5,7 +5,7 @@ import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEdit, faTrash, faSync, faEllipsisH } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../modules/auth'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
@@ -36,7 +36,8 @@ const Error500WebsitePage: React.FC = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchParams] = useSearchParams();
-    const id = searchParams.get('id');
+    const location = useLocation();
+    const id = location.state?.id;
     const [currentUrl, setCurrentUrl] = useState<string | null>(null);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [sortColumn, setSortColumn] = useState<string>(''); // Default sort column
@@ -151,7 +152,7 @@ const Error500WebsitePage: React.FC = () => {
 
     useEffect(() => {
         if (id) {
-            getError500(currentPage, sortOrder, search);
+            getError500(currentPage, sortOrder,sortColumn, search);
         }
     }, [itemsPerPage, currentPage, search])
     return (
@@ -192,12 +193,12 @@ const Error500WebsitePage: React.FC = () => {
                             <thead>
                                 <tr>
                                     {/* <th>Website Id</th> */}
-                                    <th onClick={() => handleSort('Websiteurl')} className='cursor-pointer'>
+                                    {/* <th onClick={() => handleSort('Websiteurl')} className='cursor-pointer'>
                                         Website url
                                         <span className='ms-1'>
                                             {sortColumn === 'Websiteurl' ? (sortOrder === 'asc' ? <FaSortUp /> : <FaSortDown />) : <FaSort />}
                                         </span>
-                                    </th>
+                                    </th> */}
                                     <th onClick={() => handleSort('Status')} className='cursor-pointer'>
                                         Status Code
                                         <span className='ms-1'>
@@ -237,10 +238,10 @@ const Error500WebsitePage: React.FC = () => {
                                         Array(5).fill(0).map((_, index) => (
                                             <tr key={index}>
                                                 {/* <td><Skeleton count={1} width={200} /></td> */}
-                                                <td><Skeleton count={1} width={180} /></td>
+                                                {/* <td><Skeleton count={1} width={180} /></td> */}
                                                 <td><Skeleton count={1} width={40} /></td>
-                                                <td><Skeleton count={1} width={60} /></td>
-                                                <td><Skeleton count={1} width={100} /></td>
+                                                <td><Skeleton count={1} width={220} /></td>
+                                                <td><Skeleton count={1} width={130} /></td>
                                                 <td><Skeleton count={1} width={40} /></td>
                                                 <td><Skeleton count={1} width={200} /></td>
                                                 <td></td>
@@ -251,12 +252,12 @@ const Error500WebsitePage: React.FC = () => {
                                             filterError500.map((item, index) => (
                                                 <tr key={index} className='h-50'>
                                                     {/* <td>{item.website_id}</td> */}
-                                                    <td>{item.website_url}</td>
+                                                    {/* <td>{item.website_url}</td> */}
                                                     <td>{item.status_code}</td>
                                                     <td>{item.error_message}</td>
                                                     <td>{item.error_type}</td>
                                                     <td>{item.retry_attempts}</td>
-                                                    <td>{item.timestamp}</td>
+                                                    <td>{new Date(item.timestamp).toLocaleString()}</td>
                                                     <td>
                                                         <Dropdown id='tableDropdown' className='position-relative' align="end">
                                                             <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>

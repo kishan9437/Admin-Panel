@@ -163,7 +163,7 @@ const CrawlErrorPage: React.FC = () => {
                             <select id="status-select"
                                 value={error}
                                 onChange={(e) => setError(e.target.value)}
-                                className='rounded h-100 me-3'
+                                className='rounded h-100 me-3 form-select form-select-sm'
                             >
                                 <option value="">All</option>
                                 <option value="rendering">Rendering</option>
@@ -232,11 +232,11 @@ const CrawlErrorPage: React.FC = () => {
                                         Array(5).fill(0).map((_, index) => (
                                             <tr key={index}>
                                                 {/* <td><Skeleton count={1} width={180} /></td> */}
-                                                <td><Skeleton count={1} width={160} /></td>
-                                                <td><Skeleton count={1} width={80} /></td>
-                                                <td><Skeleton count={1} width={120} /></td>
-                                                <td><Skeleton count={1} width={220} /></td>
-                                                <td><Skeleton count={1} width={220} /></td>
+                                                <td><Skeleton count={1} width={175} /></td>
+                                                <td><Skeleton count={1} width={175} /></td>
+                                                <td><Skeleton count={1} width={140} /></td>
+                                                <td><Skeleton count={1} width={100} /></td>
+                                                <td><Skeleton count={1} width={200} /></td>
                                                 <td></td>
                                             </tr>
                                         ))
@@ -249,7 +249,7 @@ const CrawlErrorPage: React.FC = () => {
                                                     <td>{item.source_url}</td>
                                                     <td>{item.error_message}</td>
                                                     <td>{item.error_type}</td>
-                                                    <td>{item.created_at}</td>
+                                                    <td>{new Date(item.created_at).toLocaleString()}</td>
                                                     <td>
                                                         <Dropdown id='tableDropdown'>
                                                             <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>

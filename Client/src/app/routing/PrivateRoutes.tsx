@@ -6,7 +6,7 @@ import { DashboardWrapper } from '../pages/dashboard/DashboardWrapper'
 import { MenuTestPage } from '../pages/MenuTestPage'
 import { getCSSVariableValue } from '../../_metronic/assets/ts/_utils'
 import { WithChildren } from '../../_metronic/helpers'
-import BuilderPageWrapper from '../pages/layout-builder/BuilderPageWrapper'
+import WebsitePageWrapper from '../pages/layout-builder/WebsitePageWrapper'
 import WebsitesUrlPageWrapper from '../pages/layout-builder/WebsitesUrlPageWrapper'
 import ActivityPageWrapper from '../pages/layout-builder/ActivityPageWrapper'
 import CrawlErrorPageWrapper from '../pages/layout-builder/CrawlErrorPageWrapper'
@@ -29,7 +29,7 @@ const PrivateRoutes = () => {
         <Route path='auth/*' element={<Navigate to='/dashboard' />} />
         {/* Pages */}
         <Route path='dashboard' element={<DashboardWrapper />} />
-        <Route path='builder/*' element={<BuilderPageWrapper />} />
+        <Route path='websites/*' element={<WebsitePageWrapper />} />
         <Route path='menu-test' element={<MenuTestPage />} />
         <Route path='websiteurl/*' element={<WebsitesUrlPageWrapper/>}/>
         <Route path='activity/*' element={<ActivityPageWrapper/>}/>

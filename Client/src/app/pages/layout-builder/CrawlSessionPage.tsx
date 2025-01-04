@@ -70,13 +70,13 @@ const CrawlSessionPage: React.FC = () => {
     const handlePageClick = (selectedItem: { selected: number }) => {
         const selectedPage = selectedItem.selected + 1;
         setPage(selectedPage);
-        getCrawlSession(selectedPage, sortOrder, sortColumn, search, status);
+        // getCrawlSession(selectedPage, sortOrder, sortColumn, search, status);
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         const searchValue = e.target.value
         setSearch(searchValue);
-        getCrawlSession(page, sortOrder, searchValue, sortColumn, status)
+        // getCrawlSession(page, sortOrder, sortColumn,searchValue, status)
     }
 
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -155,7 +155,7 @@ const CrawlSessionPage: React.FC = () => {
     };
 
     useEffect(() => {
-        getCrawlSession(currentPage, sortOrder, search, sortColumn, status);
+        getCrawlSession(currentPage, sortOrder, sortColumn,search, status);
     }, [itemsPerPage, currentPage, search, status])
     return (
         <>
@@ -176,7 +176,7 @@ const CrawlSessionPage: React.FC = () => {
                             <select id="status-select"
                                 value={status}
                                 onChange={(e) => setStatus(e.target.value)}
-                                className='rounded h-100 me-3'
+                                className='rounded h-100 me-3 form-select form-select-sm'
                             >
                                 <option value="">All</option>
                                 <option value="Pending">Pending</option>
@@ -185,7 +185,7 @@ const CrawlSessionPage: React.FC = () => {
                                 <option value="Stopped">Stopped</option>
                             </select>
 
-                            <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='ps-1 rounded h-100'>
+                            <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className=' form-select form-select-sm'>
                                 <option value={5}>5</option>
                                 <option value={10}>10</option>
                                 <option value={25}>25</option>
@@ -242,9 +242,9 @@ const CrawlSessionPage: React.FC = () => {
                                             <tr key={index}>
                                                 {/* <td><Skeleton count={1} width={180} /></td> */}
                                                 <td><Skeleton count={1} width={80} /></td>
-                                                <td><Skeleton count={1} width={80} /></td>
-                                                <td><Skeleton count={1} width={120} /></td>
-                                                <td><Skeleton count={1} width={220} /></td>
+                                                <td><Skeleton count={1} width={100} /></td>
+                                                <td><Skeleton count={1} width={200} /></td>
+                                                <td><Skeleton count={1} width={200} /></td>
                                                 <td></td>
                                             </tr>
                                         ))
@@ -261,8 +261,8 @@ const CrawlSessionPage: React.FC = () => {
                                                         </span>
                                                     </td>
 
-                                                    <td>{item.start_time}</td>
-                                                    <td>{item.last_updated_time}</td>
+                                                    <td>{new Date(item.start_time).toLocaleString()}</td>
+                                                    <td>{new Date(item.last_updated_time).toLocaleString()}</td>
                                                     <td>
                                                         <Dropdown id='tableDropdown'>
                                                             <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>

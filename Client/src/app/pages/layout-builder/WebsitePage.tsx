@@ -8,34 +8,28 @@ import { faEdit, faEllipsisH, faSync, faTrash } from '@fortawesome/free-solid-sv
 import { useAuth } from '../../modules/auth'
 import { Link } from 'react-router-dom'
 import Swal from 'sweetalert2'
-import { Button, Dropdown } from 'react-bootstrap'
+import { Dropdown } from 'react-bootstrap'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useNavigate } from 'react-router-dom'
 import Modal from 'bootstrap/js/dist/modal';
 import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
-import { MixedWidget11 } from '../../../_metronic/partials/widgets'
-
 
 interface Item {
-  _id: string;
+  id: string;
   access_key: string,
   name: string,
   status: string,
   url: string;
   website_id: string,
-  totalItems?: number;
+  totalurls: number;
 }
 
-interface WebsiteUrl {
-  website_id: string;
-}
 interface BuilderPage {
   item: Item;
   websiteId: string;
 }
-const BuilderPage: React.FC = () => {
-  const [website, setWebsite] = useState<Item[]>([]);
+const WebsitePage: React.FC = () => {
   const [search, setSearch] = useState<string>('');
   const [filterWebsite, setFilterWebsite] = useState<Item[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -67,15 +61,7 @@ const BuilderPage: React.FC = () => {
         });
         const data = await response.json();
 
-        const websitesWithTotalItems = await Promise.all(
-          data.websites.map(async (website: Item) => {
-            const totalItems = await fetchUrlTotal(website._id);
-            return { ...website, totalItems };
-          })
-        );
-
-        setWebsite(websitesWithTotalItems);
-        setFilterWebsite(websitesWithTotalItems);
+        setFilterWebsite(data.websites);
         setTotalPages(data.totalPages);
 
         setLoading(false);
@@ -87,29 +73,6 @@ const BuilderPage: React.FC = () => {
     }
   }
 
-  const fetchUrlTotal = async (websiteId: string) => {
-    try {
-      if (auth && auth.api_token) {
-        setLoading(true);
-        const response = await fetch(`http://localhost:5000/api/website-urls-id/${websiteId}`, {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${auth.api_token}`
-          }
-        });
-        const data = await response.json();
-        // console.log(data);
-        return data.totalItems ?? null;
-
-      } else {
-        console.error('No valid auth token available');
-      }
-    } catch (error) {
-      console.error('Error fetching website URL by ID', error);
-      setLoading(false);
-    }
-  }
-
   // Handle page click for pagination
   const handlePageClick = (selectedItem: { selected: number }) => {
     const selectedPage = selectedItem.selected + 1;
@@ -117,29 +80,10 @@ const BuilderPage: React.FC = () => {
     getAllWebsites(selectedPage, sortOrder, sortColumn, search, status);
   };
 
-  // const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-  //   const value = event.target.value.trim().toLowerCase()
-  //   setSearch(value);
-
-  //   if (value === "") {
-  //     setFilterWebsite(website);
-  //   }
-  //   else {
-  //     const searchTerm = value.split(' ');
-  //     const filtered = website.filter((user) => {
-  //       return searchTerm.some((term) =>
-  //         user.name.toLowerCase().includes(term) ||
-  //         user.url.toLowerCase().includes(term)
-  //       )
-  //     });
-  //     setFilterWebsite(filtered)
-  //   }
-  // };
-
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const searchValue = e.target.value
     setSearch(searchValue);
-    getAllWebsites(page, sortOrder, sortColumn, searchValue, status)
+    // getAllWebsites(page, sortOrder, sortColumn, searchValue, status)
   }
 
   const handleSort = (column: string) => {
@@ -171,7 +115,6 @@ const BuilderPage: React.FC = () => {
             await response.json()
 
             if (response.ok) {
-              // alert(response.message)
               Swal.fire({
                 position: 'center',
                 icon: 'success',
@@ -225,11 +168,11 @@ const BuilderPage: React.FC = () => {
   };
 
   const handleError500 = (id: string) => {
-    navigate(`/500Error?id=${id}`)
+    navigate(`/500Error`, { state: {id}})
   }
 
   const handleError400 = (id: string) => {
-    navigate(`/400Error?id=${id}`)
+    navigate(`/400Error`, { state: {id}})
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -537,12 +480,8 @@ const BuilderPage: React.FC = () => {
         </div>
       </div>
 
+
       <Content>
-        {/* <MixedWidget11
-          className='card-xxl-stretch-50 mb-5 mb-xl-8'
-          chartColor='primary'
-          chartHeight='175px'
-        /> */}
         <div className="container mt-0" id='tableContainer'>
           <div className='searchContainer'>
             {/* <span className='pt-1 pe-3 text-white fs-5 fw-bold'>Search : </span> */}
@@ -559,7 +498,7 @@ const BuilderPage: React.FC = () => {
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
-              <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='form-select form-select-sm shadow-sm ' style={{width:'100px'}}>
+              <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='form-select form-select-sm shadow-sm ' style={{ width: '100px' }}>
                 <option value={5}>5</option>
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -624,7 +563,7 @@ const BuilderPage: React.FC = () => {
                       <td><Skeleton count={1} width={200} /></td>
                       <td><Skeleton count={1} width={120} /></td>
                       <td><Skeleton count={1} width={70} /></td>
-                      <td><Skeleton count={1} width={70} /></td>
+                      <td><Skeleton count={1} width={200} /></td>
                       {/* <td><Skeleton count={1} width={70} /></td> */}
                       <td><Skeleton count={1} width={70} /></td>
                       <td></td>
@@ -636,7 +575,7 @@ const BuilderPage: React.FC = () => {
                       {/* <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td> */}
                       <td>{item.name}</td>
                       {/* <td>{item.url}</td> */}
-                      <td><Link to={`/websiteurl/${item._id}`}>
+                      <td><Link to='/websiteurl' state={{id: item.id, name: item.name, url: item.url , previousPath: "/websites"}}>
                         {item.url}
                       </Link>
                       </td>
@@ -647,23 +586,26 @@ const BuilderPage: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        <Dropdown>
-                          <Dropdown.Toggle variant="secondary" id={`dropdown-${item._id}`} size="sm">
-                            All Error
-                          </Dropdown.Toggle>
-                          <Dropdown.Menu>
-                            <Dropdown.Item onClick={() => handleError500(item._id)} className="text-danger">
-                              <i className="bi bi-exclamation-triangle-fill me-2 text-danger"></i> Error 500
-                            </Dropdown.Item>
-                            <Dropdown.Item onClick={() => handleError400(item._id)} className="text-warning">
-                              <i className="bi bi-exclamation-circle-fill me-2 text-warning"></i> Error 400
-                            </Dropdown.Item>
-                          </Dropdown.Menu>
-                        </Dropdown>
+                        <div className="d-flex justify-content-center gap-2 ">
+                          {/* Button for Error 500 */}
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleError500(item.id)}
+                          >
+                            <i className="bi bi-exclamation-triangle-fill pb-1 "></i> 500
+                          </button>
+
+                          {/* Button for Error 400 */}
+                          <button
+                            className="btn btn-sm btn-warning"
+                            onClick={() => handleError400(item.id)}
+                          >
+                            <i className="bi bi-exclamation-circle-fill pb-1 "></i> 400
+                          </button>
+                        </div>
                       </td>
 
-                      {/* <td></td> */}
-                      <td>{item.totalItems ?? 'N/A'}</td>
+                      <td>{item.totalurls}</td>
                       <td>
                         <Dropdown id='tableDropdown'>
                           <Dropdown.Toggle variant="secondary" id="dropdown-basic" bsPrefix='custom-dropdown-toggle w-auto'>
@@ -671,11 +613,11 @@ const BuilderPage: React.FC = () => {
                           </Dropdown.Toggle>
 
                           <Dropdown.Menu className='custom-dropdown-menu'>
-                            <Dropdown.Item as="button" onClick={() => handleEditClick(item._id)}>
+                            <Dropdown.Item as="button" onClick={() => handleEditClick(item.id)}>
                               <FontAwesomeIcon icon={faEdit} className='fs-3 text-primary' />
                               <span className='fs-5 ps-2 fw-bold text-primary'>Edit</span>
                             </Dropdown.Item>
-                            <Dropdown.Item onClick={() => handleDeleteItem(item._id)}>
+                            <Dropdown.Item onClick={() => handleDeleteItem(item.id)}>
                               <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                               <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
                             </Dropdown.Item>
@@ -727,4 +669,4 @@ const BuilderPage: React.FC = () => {
   )
 }
 
-export { BuilderPage }
+export { WebsitePage }

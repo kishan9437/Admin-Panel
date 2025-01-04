@@ -53,9 +53,28 @@ const getAllWebsites = async (req, res) => {
             .limit(limit)
             .sort({ name: sortOrder });
 
+        const websiteIds = websites.map(website => website._id)
+        const urltotal = await WebsiteUrl.aggregate([
+            { $match: { website_id: { $in: websiteIds } } },
+            { $group: { _id: "$website_id", totalUrls: { $sum: 1 } } }
+        ])
+        
+        const items = websites.map(website => {
+            const totalurl = urltotal.find(t => String(t._id) === String(website._id)) || {};
+            
+            return {
+                id: website._id,
+                name: website.name,
+                url: website.url,
+                access_key: website.access_key,
+                status: website.status,
+                totalurls: totalurl.totalUrls,
+            }
+        })
+
         res.status(200).json({
             success: true,
-            websites,
+            websites: items,
             totalWebsites,
             page,
             totalPages: Math.ceil(totalWebsites / limit),
@@ -82,35 +101,36 @@ const getUrls = async (req, res) => {
 const getWebsiteId = async (req, res) => {
     const { website_id } = req.params;
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
+    const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || '';
     const statusFilter = req.query.status;
+    const sortOrder = req.query.order === "desc" ? -1 : 1;
 
     try {
+        if (!mongoose.Types.ObjectId.isValid(website_id)) {
+            return res.status(400).json({ message: 'Invalid website_id format' });
+        }
+
         const website = await Website.findById(website_id);
         if (!website) {
             return res.status(404).json({ message: 'Website not found' });
         }
         const skip = (page - 1) * limit;
-        const sortOrder = req.query.order === "desc" ? -1 : 1;
 
         const filter = {
-            $and: [
-                {
-                    website_id: website_id,
-                    $or: [
-                        // {website_id : new RegExp(search, 'i')},
-                        ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search }] : []),
-                        { url: new RegExp(search, 'i') },
-                        { status: new RegExp(search, 'i') },
-                        ...(Number.isInteger(Number(search)) ? [{ status_code: Number(search) }] : []),
-                        ...(Number.isInteger(Number(search)) ? [{ depth: Number(search) }] : []),
-                        { parent_url: new RegExp(search, 'i') },
-                        ...(search === 'true' || search === 'false' ? [{ is_archived: search === 'true' }] : [])
-                    ]
-                },
-                ...(statusFilter? [{ status: statusFilter }] : []),
-            ]
+            website_id,
+            ...(statusFilter && { status: statusFilter }),
+
+            $or: [
+                // {website_id : new RegExp(search, 'i')},
+                ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search }] : []),
+                { url: new RegExp(search, 'i') },
+                { status: new RegExp(search, 'i') },
+                ...(Number.isInteger(Number(search)) ? [{ status_code: Number(search) }] : []),
+                ...(Number.isInteger(Number(search)) ? [{ depth: Number(search) }] : []),
+                { parent_url: new RegExp(search, 'i') },
+                ...(search === 'true' || search === 'false' ? [{ is_archived: search === 'true' }] : [])
+            ],
         }
 
         const websiteUrls = await WebsiteUrl.find(filter).skip(skip).limit(limit).sort({ status_code: sortOrder });
@@ -118,7 +138,7 @@ const getWebsiteId = async (req, res) => {
         const totalUrls = await WebsiteUrl.countDocuments(filter);
 
         res.json({
-            urls: websiteUrls,
+            data: websiteUrls,
             totalPages: Math.ceil(totalUrls / limit),
             currentPage: page,
             totalItems: totalUrls,

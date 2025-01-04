@@ -165,6 +165,7 @@ const MixedWidget11: React.FC<Props> = ({ className, chartColor, chartHeight }) 
   useEffect(() => {
     fetchUrl();
     updateSecondSelectOptions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterType]);
 
   useEffect(() => {

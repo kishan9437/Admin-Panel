@@ -1,4 +1,5 @@
 const WebsiteUrl = require('../../models/WebsiteUrl');
+const mongoose = require('mongoose');
 
 const addWebsiteUrl = async (req, res) => {
     try {
@@ -23,9 +24,32 @@ const getWebsiteUrls = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const skip = (page - 1) * limit;
-        const totalWebsitesUrl = await WebsiteUrl.countDocuments();  
+        const search = req.query.search || '';
+        const sortOrder = req.query.order === "desc" ? -1 : 1;
+        const statusFilter = req.query.status;
 
-        const websiteUrls = await WebsiteUrl.find({}).skip(skip).limit(limit);
+        const filter = {
+            $and: [
+                {
+                    // website_id: website_id,
+                    $or: [
+                        // {website_id : new RegExp(search, 'i')},
+                        ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search }] : []),
+                        { url: new RegExp(search, 'i') },
+                        { status: new RegExp(search, 'i') },
+                        ...(Number.isInteger(Number(search)) ? [{ status_code: Number(search) }] : []),
+                        ...(Number.isInteger(Number(search)) ? [{ depth: Number(search) }] : []),
+                        { parent_url: new RegExp(search, 'i') },
+                        ...(search === 'true' || search === 'false' ? [{ is_archived: search === 'true' }] : [])
+                    ]
+                },
+                ...(statusFilter ? [{ status: statusFilter }] : []),
+            ]
+        }
+        const websiteUrls = await WebsiteUrl.find(filter).skip(skip).limit(limit).sort({ status_code: sortOrder });
+
+        const totalWebsitesUrl = await WebsiteUrl.countDocuments(filter);
+
         res.status(200).json({
             success: true,
             data: websiteUrls,
@@ -55,12 +79,12 @@ const deleteWebsiteUrls = async (req, res) => {
     }
 }
 
-const getWebsiteUrlById = async (req,res) => {
-    const {id} = req.params;
+const getWebsiteUrlById = async (req, res) => {
+    const { id } = req.params;
     try {
         const websiteUrl = await WebsiteUrl.findById(id);
         if (!websiteUrl) {
-            return res.status(404).json({message: "Website Url not found"});
+            return res.status(404).json({ message: "Website Url not found" });
         }
         res.status(200).json({
             success: true,
@@ -68,7 +92,7 @@ const getWebsiteUrlById = async (req,res) => {
         })
     } catch (error) {
         console.error(error);
-        res.status(500).json({error: error.message});
+        res.status(500).json({ error: error.message });
     }
 }
 
@@ -77,8 +101,8 @@ const updateWebsiteUrl = async (req, res) => {
     const updateData = req.body;
 
     try {
-        const updateWebsiteUrl = await WebsiteUrl.findByIdAndUpdate(id, updateData,{
-            new : true,
+        const updateWebsiteUrl = await WebsiteUrl.findByIdAndUpdate(id, updateData, {
+            new: true,
             runValidators: true,
         })
 
@@ -91,7 +115,7 @@ const updateWebsiteUrl = async (req, res) => {
             updateWebsiteUrl
         });
     } catch (error) {
-        res.status(500).json({ message: "Error updating data", error});
+        res.status(500).json({ message: "Error updating data", error });
     }
 }
-module.exports = { addWebsiteUrl, getWebsiteUrls, deleteWebsiteUrls,updateWebsiteUrl,getWebsiteUrlById};
+module.exports = { addWebsiteUrl, getWebsiteUrls, deleteWebsiteUrls, updateWebsiteUrl, getWebsiteUrlById };
