@@ -9,7 +9,7 @@ const addActivity = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Activity added successfully',
-            items:savedActivity
+            items: savedActivity
         });
     } catch (error) {
         res.status(500).json({ message: "Error adding activity", error });
@@ -18,31 +18,55 @@ const addActivity = async (req, res) => {
 
 const getActivity = async (req, res) => {
     try {
+        const { id, startDate, endDate } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const search = req.query.search || '';
         const sortOrder = req.query.order === "desc" ? -1 : 1;
         const statusFilter = req.query.status;
 
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: 'Invalid URL ID format' });
+        }
+
         const filter = {
             $and: [
-                {
-                    $or:[
-                        ...(mongoose.Types.ObjectId.isValid(search) ? [{ url_id: search}]: []),
-                        { status: new RegExp(search, 'i') },
-                        { error: new RegExp(search, 'i') },
-                        ...(Number.isInteger(Number(search)) ? [{ page_size: search }] : [])
+                { url_id: id },
+                ...(search
+                    ? [
+                        {
+                            $or: [
+                                ...(mongoose.Types.ObjectId.isValid(search)
+                                    ? [{ url_id: search }]
+                                    : []),
+                                { status: new RegExp(search, 'i') },
+                                { error: new RegExp(search, 'i') },
+                                ...(Number.isInteger(Number(search))
+                                    ? [{ page_size: parseInt(search, 10) }]
+                                    : []),
+                            ],
+                        },
                     ]
-                },
-                ...(statusFilter ? [{ status: statusFilter }] : [])
+                    : []),
+                ...(statusFilter ? [{ status: statusFilter }] : []),
+                ...(startDate || endDate
+                    ? [
+                        {
+                            last_render_at: {
+                                ...(startDate ? { $gte: new Date(startDate) } : {}),
+                                ...(endDate ? { $lte: new Date(endDate) } : {}),
+                            },
+                        },
+                    ]
+                    : []),
             ]
-             
+
         }
 
         const skip = (page - 1) * limit;
-        const totalActivity = await PrerenderActivity.countDocuments(filter);  
+        const totalActivity = await PrerenderActivity.countDocuments(filter);
 
-        const activity = await PrerenderActivity.find(filter).skip(skip).limit(limit).sort({page_size: sortOrder});
+        const activity = await PrerenderActivity.find(filter).skip(skip).limit(limit).sort({ page_size: sortOrder });
         res.status(200).json({
             success: true,
             items: activity,
@@ -70,4 +94,4 @@ const deleteActivity = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
-module.exports = { addActivity , getActivity,deleteActivity };
+module.exports = { addActivity, getActivity, deleteActivity };

@@ -3,9 +3,11 @@ import ApexCharts, { ApexOptions } from 'apexcharts'
 import { KTIcon } from '../../../helpers'
 import { getCSSVariableValue } from '../../../assets/ts/_utils'
 import { useThemeMode } from '../../layout/theme-mode/ThemeModeProvider'
-import { useLocation, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { DatePicker } from 'antd';
 import dayjs, { Dayjs } from 'dayjs'
+import { useDateRange } from '../../../../app/modules/auth'
+import { LuSquareActivity } from "react-icons/lu";
 
 const { RangePicker } = DatePicker;
 type RangeValue<T> = [T | null, T | null] | null;
@@ -22,6 +24,7 @@ interface ChartItem {
     notRenderedPages: number;
     error400Count: number;
     error500Count: number;
+    activityCount: number;
 }
 const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
     const chartRef = useRef<HTMLDivElement | null>(null)
@@ -35,6 +38,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
         notRenderedPages: 0,
         error400Count: 0,
         error500Count: 0,
+        activityCount: 0,
     });
     const [chartData, setChartData] = useState({
         categories: [] as string[],
@@ -44,24 +48,34 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
             not_rendered_pages: [] as number[],
         }
     })
+    const { setStartDate, setEndDate } = useDateRange();
+    const navigate = useNavigate();
+    const [getid, setgetId] = useState();
+    const { name, previousPath, url } = location.state || {};
 
     const fetchChartData = async (startDate: string, endDate: string) => {
         if (!id) return;
         try {
+            setStartDate(startDate);
+            setEndDate(endDate);
             const response = await fetch(`http://localhost:5000/api/chart-data?startDate=${startDate}&endDate=${endDate}&id=${id}`);
 
             const data = await response.json();
-
+            console.log(data);
             const totals = data.response.reduce((acc: ChartItem, item: ChartItem) => {
                 acc.totalPages += item.totalPages || 0;
                 acc.renderedPages += item.renderedPages || 0;
                 acc.notRenderedPages += item.notRenderedPages || 0;
                 acc.error400Count += item.error400Count || 0;
                 acc.error500Count += item.error500Count || 0;
+                acc.activityCount += item.activityCount || 0;
                 return acc;
             },
-                { totalPages: 0, renderedPages: 0, notRenderedPages: 0, error400Count: 0, error500Count: 0 }
+                { totalPages: 0, renderedPages: 0, notRenderedPages: 0, error400Count: 0, error500Count: 0, activityCount: 0 }
             )
+
+            setgetId(data.id)
+
             const categories = data.response.map((item: { day: string }) => item.day);
             const series = {
                 total_pages: data.response.map((item: { totalPages: number }) => item.totalPages),
@@ -83,12 +97,16 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
         }
     };
 
+    const activityHandle = () => {
+        navigate(`/activity`,{state: { id: getid, url, previousPath: `/websites`,name}})
+    }
+
     useEffect(() => {
         if (!id) return;
 
         const today = dayjs();
-        const startOfWeek = today.startOf('week');
-        const endOfWeek = today.endOf('week');
+        const startOfWeek = today.startOf('month');
+        const endOfWeek = today.endOf('month');
 
         setDateRange([startOfWeek, endOfWeek]);
         fetchChartData(startOfWeek.format('YYYY-MM-DD'), endOfWeek.format('YYYY-MM-DD'));
@@ -115,7 +133,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                 chart1.destroy()
             }
         }
-        
+
     }, [chartRef, mode, chartData])
 
     return (
@@ -136,7 +154,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
 
             <div className='card-body d-flex flex-column '>
                 <div ref={chartRef} className='mixed-widget-5-chart card-rounded-top' ></div>
-                <div className='row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 g-3 mt-5'>
+                <div className='row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-6 g-3 mt-5'>
                     <div className='col'>
                         <div className='bg-light-warning px-6 py-8 rounded-2'>
                             <KTIcon iconName='chart-simple' className='fs-3x text-warning d-block my-2' />
@@ -165,6 +183,18 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                         </div>
                     </div>
                     <div className='col'>
+                        <div className='bg-light-success px-6 py-8 rounded-2'>
+                            <LuSquareActivity className='fs-3x text-success d-block my-2' />
+                            <div
+                                className='text-success fw-semibold fs-6 mt-2 cursor-pointer'
+                                onClick={activityHandle}
+                            >
+                                Activity :
+                                <span className='ps-3'>{totals.activityCount}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className='col'>
                         <div className='bg-light-danger px-6 py-8 rounded-2'>
                             <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
                             <div className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
@@ -182,9 +212,12 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
+            {/* <WebsiteUrlpage startDate={dateRange ? dateRange[0] : ''} endDate={dateRange ? dateRange[1] : ''}/> */}
         </div>
+
     )
 }
 

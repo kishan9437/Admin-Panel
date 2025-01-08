@@ -41,7 +41,7 @@ interface UrlChartItem {
   data: UrlChartData[];
 }
 
-const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
+const DashboardChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
   const [chartRefs, setChartRefs] = useState<React.RefObject<HTMLDivElement>[]>([]);
   const { mode } = useThemeMode()
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
     id?: string
   ) => {
     try {
-      console.log('Fetching chart data with:', { startDate, endDate });
+      // console.log('Fetching chart data with:', { startDate, endDate });
 
       if (!startDate || !endDate) {
         console.error('Start date or end date is missing');
@@ -82,7 +82,7 @@ const MixedWidget8: FC<Props> = ({ className, chartColor, chartHeight }) => {
       } else {
         setData(result.items || [])
       }
-      console.log(result.items);
+      // console.log(result.items);
       setChartRefs(result.items.map(() => React.createRef<HTMLDivElement>()));
 
     } catch (error) {
@@ -388,4 +388,4 @@ const chart1Options = (chartColor: string, chartHeight: string, data: { categori
   }
 }
 
-export { MixedWidget8 }
+export { DashboardChart }

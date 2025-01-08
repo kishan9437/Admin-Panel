@@ -4,7 +4,7 @@ import Form from 'react-bootstrap/Form'
 import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrash, faSync, faEllipsisH } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from '../../modules/auth'
+import { useAuth, useDateRange } from '../../modules/auth'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import Pagination from 'react-paginate'
@@ -14,6 +14,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import { Tooltip, OverlayTrigger } from 'react-bootstrap'
 import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { FaGreaterThan } from "react-icons/fa";
 import { UrlChart } from '../../../_metronic/partials/widgets/mixed/UrlChart'
 
 interface WebsiteUrl {
@@ -55,7 +56,8 @@ const WebsiteUrlpage: React.FC = () => {
     const location = useLocation();
     const websiteId = location.state?.id;
     const navigate = useNavigate();
-    const { name, previousPath,url } = location.state || {};
+    const { name, previousPath, url } = location.state || {};
+    
     const [copied, setCopied] = useState(false);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [sortColumn, setSortColumn] = useState<string>('name');
@@ -73,14 +75,40 @@ const WebsiteUrlpage: React.FC = () => {
         parent_url: '',
         is_archived: false
     });
+    const { startDate, endDate } = useDateRange()
+    const formattedStartDate = startDate ? new Date(startDate).toISOString() : undefined;
+    const formattedEndDate = endDate ? new Date(endDate).toISOString() : undefined;
 
-    const fetchWebsiteUrlById = async (page: number = currentPage, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '', selectedStaus: string, websiteId?: string, itemsLimit: number = itemsPerPage) => {
+    console.log(url)
+    const fetchWebsiteUrlById = async (
+        page: number = currentPage,
+        order: 'asc' | 'desc' = 'asc',
+        column: string = 'name',
+        search: string = '',
+        selectedStatus: string,
+        websiteId?: string,
+        itemsLimit: number = itemsPerPage,
+        startDate?: string,
+        endDate?: string
+    ) => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
+
+                const queryParams = new URLSearchParams({
+                    page: page.toString(),
+                    limit: itemsLimit.toString(),
+                    order,
+                    search,
+                    status: selectedStatus || '',
+                    ...(startDate && { startDate }),
+                    ...(endDate && { endDate }),
+                }).toString();
+
                 const url = websiteId
-                    ? `http://localhost:5000/api/website-urls-id/${websiteId}?page=${page}&limit=${itemsLimit}&order=${order}&search=${search}&status=${selectedStaus}`
+                    ? `http://localhost:5000/api/website-urls-id/${websiteId}?${queryParams}`
                     : '';
+
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -260,9 +288,9 @@ const WebsiteUrlpage: React.FC = () => {
 
     useEffect(() => {
         if (websiteId) {
-            fetchWebsiteUrlById(currentPage, sortOrder, sortColumn, search, status, websiteId);
+            fetchWebsiteUrlById(currentPage, sortOrder, sortColumn, search, status, websiteId, itemsPerPage, formattedStartDate, formattedEndDate);
         }
-    }, [websiteId, currentPage, sortOrder, sortColumn, search, status]);
+    }, [websiteId, currentPage, sortOrder, sortColumn, search, status, formattedStartDate, formattedEndDate]);
 
 
     const handleCopy = (url: string) => {
@@ -287,18 +315,47 @@ const WebsiteUrlpage: React.FC = () => {
                 <div id="kt_toolbar_container" className="container d-flex flex-stack">
                     <div className="d-flex flex-column ">
                         <div className="d-flex align-items-center">
-                            <Link to={previousPath || "/"}
-                                className=" fw-semibold text-black py-2"
+                            <div
+                                className="d-flex align-item-center fw-semibold text-black py-2"
                             >
-                                {/* <FontAwesomeIcon icon={faArrowLeft} className="me-1 fs-6 text-white" /> */}
-                                {/* <span className='ps-1 fs-5 text-white'>Websites Details{previousPath?.replace("/", "") || "Home"} page</span> */}
-                                <span className='fs-5 text-white'>Website Details : </span>
-                                <span className="text-black my-1 fs-5 text-white">{name}</span>
-                                {/* <h6 className="text-muted">{url}</h6>    */}
-                            </Link>
+                                {
+                                    previousPath && (
+                                        <Link to={previousPath}
+                                            className='breadcrumb fs-5 text-white'
+                                        >
+                                            {previousPath.replace("/", "") || "Home"}
+                                        </Link>
+                                    )
+                                }
+                                {previousPath && <span className="fs-8 text-white pt-1 mx-1 align-bottom">
+                                    <svg
+                                        aria-hidden="true"
+                                        className=""
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="white" // Set the color to white
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M6.293 12.707a1 1 0 0 1 0-1.414L9.586 8 6.293 4.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                                            shapeRendering="geometricPrecision"
+                                        />
+                                    </svg> </span>}
+                                <span className="fs-6 text-white align-center" style={{ paddingTop: '2px' }}>{url}</span>
+                            </div>
                         </div>
-                        
+                        <div className=''>
+                            <span className="my-1 fs-5 text-white fw-bold">{name}</span>
+                        </div>
                     </div>
+                    {/* <span className='fs-5 text-white'>{previousPath?.replace("/", "") || "Home"} </span> 
+                                <span className='fs-5 text-white'>Website Details : </span>
+                                <span className="text-black my-1 fs-5 text-white pb-2">{name}</span> 
+                                <h6 className="text-white">{url}</h6> */}
+
                     <div className="d-flex align-items-center py-1">
                         <button
                             className="btn bg-body btn-active-color-primary"

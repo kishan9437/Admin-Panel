@@ -2,6 +2,7 @@ const WebsiteUrl = require('../../models/WebsiteUrl');
 const Error400Website = require('../../models/error400Website');
 const Error500Website = require('../../models/error500Websites');
 const Website = require('../../models/Website');
+const Activity = require('../../models/Activity')
 const { ObjectId } = require('mongodb');
 
 const getChartData = async (req, res) => {
@@ -86,14 +87,35 @@ const getChartData = async (req, res) => {
             },
         ]);
 
+        const activityTotal = await Activity.aggregate([
+            { 
+                $match: {
+                    url_id: websiteId,
+                    last_render_at: { $gte: start, $lte: end },
+                },
+            },
+            {
+                $group: {
+                    _id: { day: { $dateToString: { format: '%Y-%m-%d', date: '$last_render_at' } } },
+                    count: { $sum: 1 },
+                },
+            },
+        ])
+
         const error500 = error500Total.reduce((acc, stat) => {
             acc[stat._id.day] = stat.count;
             return acc;
         }, {})
+
         const error400 = error400Total.reduce((acc, stat) => {
             acc[stat._id.day] = stat.count;
             return acc;
         }, {})
+
+        const activity = activityTotal.reduce((acc, stat) => {
+            acc[stat._id.day] = stat.count;
+            return acc;
+        },{})
 
         const statsMap = websiteUrlsData.reduce((acc, stat) => {
             acc[stat._id.day] = {
@@ -111,9 +133,11 @@ const getChartData = async (req, res) => {
             notRenderedPages: statsMap[currentDate]?.notRenderedPages || 0,
             error400Count: error400[currentDate] || 0,
             error500Count: error500[currentDate] || 0,
+            activityCount: activity[currentDate] || 0,
         }))
 
         res.json({
+            id,
             response,
         });
     } catch (error) {

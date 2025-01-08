@@ -216,3 +216,10 @@ tbody td .editBackground {
     transition: color 0.3s ease;
   }
   
+.breadcrumb{
+    display: flex ;
+}
+.breadcrumb:hover{
+    text-decoration: underline !important;
+}
+

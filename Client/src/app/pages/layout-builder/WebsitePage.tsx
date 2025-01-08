@@ -168,11 +168,11 @@ const WebsitePage: React.FC = () => {
   };
 
   const handleError500 = (id: string) => {
-    navigate(`/500Error`, { state: {id}})
+    navigate(`/500Error`, { state: { id } })
   }
 
   const handleError400 = (id: string) => {
-    navigate(`/400Error`, { state: {id}})
+    navigate(`/400Error`, { state: { id } })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -575,7 +575,7 @@ const WebsitePage: React.FC = () => {
                       {/* <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td> */}
                       <td>{item.name}</td>
                       {/* <td>{item.url}</td> */}
-                      <td><Link to='/websiteurl' state={{id: item.id, name: item.name, url: item.url , previousPath: "/websites"}}>
+                      <td><Link to='/websiteurl' state={{ id: item.id, name: item.name, url: item.url, previousPath: "/websites" }}>
                         {item.url}
                       </Link>
                       </td>

@@ -58,10 +58,10 @@ const getAllWebsites = async (req, res) => {
             { $match: { website_id: { $in: websiteIds } } },
             { $group: { _id: "$website_id", totalUrls: { $sum: 1 } } }
         ])
-        
+
         const items = websites.map(website => {
             const totalurl = urltotal.find(t => String(t._id) === String(website._id)) || {};
-            
+
             return {
                 id: website._id,
                 name: website.name,
@@ -100,6 +100,7 @@ const getUrls = async (req, res) => {
 
 const getWebsiteId = async (req, res) => {
     const { website_id } = req.params;
+    const { startDate, endDate } = req.query; 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || '';
@@ -115,14 +116,19 @@ const getWebsiteId = async (req, res) => {
         if (!website) {
             return res.status(404).json({ message: 'Website not found' });
         }
+
         const skip = (page - 1) * limit;
 
         const filter = {
             website_id,
             ...(statusFilter && { status: statusFilter }),
-
+            ...(startDate || endDate ? {
+                last_render_at: {
+                    ...(startDate ? { $gte: new Date(startDate) } : {}),
+                    ...(endDate ? { $lte: new Date(endDate) } : {})
+                }
+            } : {}),
             $or: [
-                // {website_id : new RegExp(search, 'i')},
                 ...(mongoose.Types.ObjectId.isValid(search) ? [{ website_id: search }] : []),
                 { url: new RegExp(search, 'i') },
                 { status: new RegExp(search, 'i') },
@@ -131,9 +137,16 @@ const getWebsiteId = async (req, res) => {
                 { parent_url: new RegExp(search, 'i') },
                 ...(search === 'true' || search === 'false' ? [{ is_archived: search === 'true' }] : [])
             ],
-        }
+        };
 
-        const websiteUrls = await WebsiteUrl.find(filter).skip(skip).limit(limit).sort({ status_code: sortOrder });
+        // console.log("Filter:", JSON.stringify(filter, null, 2));
+
+        const websiteUrls = await WebsiteUrl.find(filter)
+            .skip(skip)
+            .limit(limit)
+            .sort({ status_code: sortOrder });
+
+        // console.log("Website URLs:", websiteUrls);
 
         const totalUrls = await WebsiteUrl.countDocuments(filter);
 
@@ -147,7 +160,8 @@ const getWebsiteId = async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
-}
+};
+
 const getWebsiteById = async (req, res) => {
     const { id } = req.params;
 

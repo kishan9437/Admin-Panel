@@ -4,15 +4,14 @@ import Form from 'react-bootstrap/Form'
 import { Content } from '../../../_metronic/layout/components/Content'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEdit, faTrash, faSync, faEllipsisH } from '@fortawesome/free-solid-svg-icons'
-import { useAuth } from '../../modules/auth'
-import { Link } from 'react-router-dom'
+import { useAuth, useDateRange } from '../../modules/auth'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import Pagination from 'react-paginate'
 import Dropdown from 'react-bootstrap/Dropdown'
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
-
 
 interface Activity {
     _id: string;
@@ -34,14 +33,40 @@ const ActivityPage: React.FC = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(true);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-    const [sortColumn, setSortColumn] = useState<string>('name'); // Default sort column
+    const [sortColumn, setSortColumn] = useState<string>('name');
     const [status, setStatus] = useState<string>("");
+    const location = useLocation()
+    const { id, url, previousPath,name } = location.state || {};
+    const navigate = useNavigate()
+    const { startDate, endDate } = useDateRange();
+    const formattedStartDate = startDate ? new Date(startDate).toISOString() : undefined;
+    const formattedEndDate = endDate ? new Date(endDate).toISOString() : undefined;
 
-    const getActivity = async (page: number = currentPage, order: 'asc' | 'desc' = 'asc', column: string = 'name', search: string = '', selectedStaus: string) => {
+    // console.log(previousPath)
+    const getActivity = async (
+        page: number = currentPage,
+        order: 'asc' | 'desc' = 'asc',
+        column: string = 'name',
+        search: string = '',
+        selectedStaus: string,
+        id?: string,
+        startDate?: string,
+        endDate?: string
+    ) => {
         try {
             if (auth && auth.api_token) {
                 setLoading(true);
-                const response = await fetch(`http://localhost:5000/api/activities?page=${page}&limit=${itemsPerPage}&search=${search}&order=${order}&status=${selectedStaus}`, {
+
+                const queryParams = new URLSearchParams({
+                    page: page.toString(),
+                    order,
+                    search,
+                    status: selectedStaus || '',
+                    ...(startDate ? { startDate } : {}),
+                    ...(endDate ? { endDate } : {}),
+                }).toString();
+
+                const response = await fetch(`http://localhost:5000/api/activities?id=${id}&${queryParams}`, {
                     headers: {
                         Authorization: `Bearer ${auth.api_token}`,
                     },
@@ -65,13 +90,13 @@ const ActivityPage: React.FC = () => {
         const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
         setSortOrder(newOrder);
         setSortColumn(column)
-        getActivity(currentPage, newOrder, column, search, status);
+        getActivity(currentPage, newOrder, column, search, status, id);
     }
 
     const handlePageClick = (selectedItem: { selected: number }) => {
         const selectedPage = selectedItem.selected + 1;
         setPage(selectedPage);
-        getActivity(selectedPage, sortOrder, sortColumn, search, status);
+        getActivity(selectedPage, sortOrder, sortColumn, search, status, id);
     };
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -151,16 +176,56 @@ const ActivityPage: React.FC = () => {
         }
     }
 
+    const previousUrl=()=>{
+        navigate(`/websiteurl`,{state: { id,url, previousPath,name }})
+    }
     useEffect(() => {
-        getActivity(currentPage, sortOrder, sortColumn, search, status);
-    }, [itemsPerPage, currentPage, search, status])
+        if (id) {
+            getActivity(currentPage, sortOrder, sortColumn, search, status, id, formattedStartDate, formattedEndDate);
+        }
+    }, [id, itemsPerPage, currentPage, search, status, formattedStartDate, formattedEndDate])
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
                 <div id="kt_toolbar_container" className="container d-flex flex-stack">
-                    <div className="page-title d-flex flex-column">
-                        <h1 className="d-flex text-white fw-bold my-1 fs-3">Activity</h1>
+                    <div className="d-flex flex-column ">
+                        <div className="d-flex align-items-center">
+                            <div
+                                className="d-flex align-item-center fw-semibold text-black py-2"
+                            >
+                                {
+                                    previousPath && (
+                                        <div onClick={previousUrl}
+                                            className='breadcrumb fs-5 text-white cursor-pointer'
+                                        >
+                                            {previousPath.replace("/", "") || "Home"}
+                                        </div>
+                                    )
+                                }
+                                {previousPath && <span className="fs-8 text-white pt-1 mx-1 align-bottom">
+                                    <svg
+                                        aria-hidden="true"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="white" 
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M6.293 12.707a1 1 0 0 1 0-1.414L9.586 8 6.293 4.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                                            shapeRendering="geometricPrecision"
+                                        />
+                                    </svg> </span>}
+                                <span className="fs-6 text-white align-center" style={{ paddingTop: '2px' }}>{url}</span>
+                            </div>
+                        </div>
+                        <div className=''>
+                            <span className="my-1 fs-5 text-white fw-bold">Activity</span>
+                        </div>
                     </div>
+
                     {/* <div className="d-flex align-items-center py-1">
                         <Link to='' className="btn bg-body btn-active-color-primary" id="kt_toolbar_primary_button" data-bs-theme="light">New</Link>
                     </div> */}
@@ -275,7 +340,7 @@ const ActivityPage: React.FC = () => {
                                                                     <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                                                                     <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
                                                                 </Dropdown.Item>
-                                                                <Dropdown.Item onClick={() => getActivity(page, sortOrder, sortColumn, search, status)}>
+                                                                <Dropdown.Item onClick={() => getActivity(page, sortOrder, sortColumn, search, status, id)}>
                                                                     <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
                                                                     <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
                                                                 </Dropdown.Item>

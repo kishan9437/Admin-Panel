@@ -14,6 +14,13 @@ type AuthContextProps = {
   logout: () => void
 }
 
+type DateRangeContextType = {
+  startDate: string | null;
+  endDate: string | null;
+  setStartDate: React.Dispatch<React.SetStateAction<string | null>>;
+  setEndDate: React.Dispatch<React.SetStateAction<string | null>>;
+};
+
 const initAuthContextPropsState = {
   auth: authHelper.getAuth(),
   saveAuth: () => {},
@@ -24,6 +31,22 @@ const initAuthContextPropsState = {
 
 const AuthContext = createContext<AuthContextProps>(initAuthContextPropsState)
 
+const DateRangeContext = createContext<DateRangeContextType>({
+  startDate: null,
+  endDate: null,
+  setStartDate: () => {},
+  setEndDate: () => {},
+});
+
+const DateRangeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  return (
+    <DateRangeContext.Provider value={{ startDate, endDate, setStartDate, setEndDate }}>
+      {children}
+    </DateRangeContext.Provider>
+  );
+};
 const useAuth = () => {
   return useContext(AuthContext)
 }
@@ -56,8 +79,6 @@ const AuthInit: FC<WithChildren> = ({children}) => {
   const {auth, currentUser, logout, setCurrentUser} = useAuth()
   const [showSplashScreen, setShowSplashScreen] = useState(true)
 
-  // We should request user by authToken (IN OUR EXAMPLE IT'S API_TOKEN) before rendering the application
-  // console.log(auth)
   useEffect(() => {
     const requestUser = async (apiToken: string) => {
       try {
@@ -66,7 +87,6 @@ const AuthInit: FC<WithChildren> = ({children}) => {
           if (data) {
             setCurrentUser(data)
           }
-          // console.log(data)
         }
       } catch (error) {
         console.error(error)
@@ -79,18 +99,16 @@ const AuthInit: FC<WithChildren> = ({children}) => {
     }
 
     if (auth && auth.api_token) {
-      // console.log(`Auth token: ${auth.api_token}`)
       requestUser(auth.api_token)
-      // console.log(auth.api_token)
     } else {
       logout()
       setShowSplashScreen(false)
     }
     // eslint-disable-next-line
-    // console.log(`Auth token: ${auth}`)
   }, [])
 
   return showSplashScreen ? <LayoutSplashScreen /> : <>{children}</>
 }
 
-export {AuthProvider, AuthInit, useAuth}
+export {AuthProvider, AuthInit, useAuth, DateRangeProvider}
+export const useDateRange = () => useContext(DateRangeContext);

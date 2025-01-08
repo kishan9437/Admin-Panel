@@ -10,7 +10,7 @@ export function MenuInner() {
       <MenuItem title={intl.formatMessage({id: 'MENU.DASHBOARD'})} to='/dashboard' />
       <MenuItem title='Websites' to='/websites' />
       {/* <MenuItem title='WebsitesUrl' to='/websiteurl'/> */}
-      <MenuItem title='Activity' to='/activity'/>
+      {/* <MenuItem title='Activity' to='/activity'/> */}
       <MenuItem title='CrawlError' to='/crawlerror'/>
       {/* <MenuItem title='' to='/500Erro'/> */}
       {/* <MenuItem title='Error400' to='/400Error'/> */}
