@@ -12,6 +12,7 @@ const error400websiteRouter = require('./routes/admin/error400Website-routes')
 const crawlsessionRouter = require('./routes/admin/CrawlSession-routes')
 const chartRouter = require('./routes/admin/Chart-routes')
 const pageRenderRouter = require('./routes/admin/PageRender-routes')
+const urlactivity = require('./routes/admin/UrlActivity-routes')
 const cookieParser=require('cookie-parser');
 const cors=require('cors');
 
@@ -31,7 +32,7 @@ app.use('/api',websiteRouter);
 
 app.use('/api',websiteUrlRouter);
 
-app.use('/api',activityRouter)
+app.use('/api',activityRouter);
 
 app.use('/api',crawlErrorRouter)
 
@@ -44,6 +45,8 @@ app.use('/api',crawlsessionRouter)
 app.use('/api',chartRouter)
 
 app.use('/api',pageRenderRouter)
+
+app.use('/api',urlactivity)
 
 const PORT=5000;
 connectDB().then(()=>{

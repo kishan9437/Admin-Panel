@@ -3,8 +3,18 @@ const mongoose = require('mongoose');
 
 const addWebsiteUrl = async (req, res) => {
     try {
+        const { url } = req.body;
+        const existingUrl = await WebsiteUrl.findOne({ url })
+        if (existingUrl) {
+            return res.status(400).json({
+                success: false,
+                message: 'URL already exists'
+            });
+        }
+
         const newWebsiteUrl = new WebsiteUrl(req.body);
         const savedWebsiteUrl = await newWebsiteUrl.save();
+        
         res.status(200).json({
             success: true,
             message: 'Website URL added successfully',

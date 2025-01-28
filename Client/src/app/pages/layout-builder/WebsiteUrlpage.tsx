@@ -16,6 +16,8 @@ import { FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { FaGreaterThan } from "react-icons/fa";
 import { UrlChart } from '../../../_metronic/partials/widgets/mixed/UrlChart'
+import ActivityModal from './Component/ActivityModal'
+import axios from 'axios';
 
 interface WebsiteUrl {
     _id: string,
@@ -57,7 +59,6 @@ const WebsiteUrlpage: React.FC = () => {
     const websiteId = location.state?.id;
     const navigate = useNavigate();
     const { name, previousPath, url } = location.state || {};
-    
     const [copied, setCopied] = useState(false);
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [sortColumn, setSortColumn] = useState<string>('name');
@@ -78,8 +79,22 @@ const WebsiteUrlpage: React.FC = () => {
     const { startDate, endDate } = useDateRange()
     const formattedStartDate = startDate ? new Date(startDate).toISOString() : undefined;
     const formattedEndDate = endDate ? new Date(endDate).toISOString() : undefined;
+    const [showModal, setShowModal] = useState(false);
+    const [timelineData, setTimelineData] = useState<
+        Array<{
+            url: string;
+            status: string;
+            last_render_at: string | null;
+            pending: string | null;
+            errors: Array<{
+                statusCode: number;
+                errorType: string;
+            }>;
+        }>
+    >([]);
+    const [selectedUrl, setSelectedUrl] = useState<string>('');
 
-    console.log(url)
+    // console.log(url)
     const fetchWebsiteUrlById = async (
         page: number = currentPage,
         order: 'asc' | 'desc' = 'asc',
@@ -109,7 +124,6 @@ const WebsiteUrlpage: React.FC = () => {
                     ? `http://localhost:5000/api/website-urls-id/${websiteId}?${queryParams}`
                     : '';
 
-
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: {
@@ -117,7 +131,7 @@ const WebsiteUrlpage: React.FC = () => {
                     }
                 });
                 const data = await response.json();
-
+                // console.log(data);
                 setFilteredResults(data.data);
                 setTotalPages(data.totalPages);
                 setLoading(false);
@@ -159,7 +173,7 @@ const WebsiteUrlpage: React.FC = () => {
                                 text: 'Data Deleting successfully',
                                 confirmButtonText: "OK"
                             }).then(() => {
-                                fetchWebsiteUrlById(page, sortOrder, sortColumn, search, status, websiteId);
+                                fetchWebsiteUrlById(page, sortOrder, sortColumn, search, status, websiteId, itemsPerPage, formattedStartDate, formattedEndDate);
                             })
                         }
                         else {
@@ -253,7 +267,7 @@ const WebsiteUrlpage: React.FC = () => {
         const selectedPage = selectedItem.selected + 1;
         setPage(selectedPage);
 
-        fetchWebsiteUrlById(selectedPage, sortOrder, sortColumn, search, status, websiteId);
+        fetchWebsiteUrlById(selectedPage, sortOrder, sortColumn, search, status, websiteId, itemsPerPage, formattedStartDate, formattedEndDate);
     }
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,8 +297,12 @@ const WebsiteUrlpage: React.FC = () => {
         setItemsPerPage(newItemsPerPage);
         setCurrentPage(1);
 
-        fetchWebsiteUrlById(1, sortOrder, sortColumn, search, status, websiteId, newItemsPerPage);
+        fetchWebsiteUrlById(1, sortOrder, sortColumn, search, status, websiteId, newItemsPerPage, formattedStartDate, formattedEndDate);
     };
+
+    const previousUrl = () => {
+        navigate(`/websites`, { state: { websiteId, url, previousPath, name } })
+    }
 
     useEffect(() => {
         if (websiteId) {
@@ -309,32 +327,65 @@ const WebsiteUrlpage: React.FC = () => {
             </Tooltip>
         )
     }
+
+    const handleCloseModal = () => setShowModal(false);
+
+    const handleOpenModal = (url: string) => {
+        console.log(url)
+        setSelectedUrl(websiteId);
+        // setLoading(true);
+
+        axios
+            .get(
+                `http://localhost:5000/api/url-activity?website_id=${websiteId}&startdate=${startDate}&enddate=${endDate}&url=${url}`
+            )
+            .then((response) => {
+                console.log(response);
+                setTimelineData(response.data);
+                setLoading(false);
+                setShowModal(true);
+            })
+            .catch((error) => {
+                console.error('Error fetching data:', error);
+                setLoading(false);
+            });
+    };
+
     return (
         <>
             <div className="toolbar py-5 py-lg-15" id="kt_toolbar">
                 <div id="kt_toolbar_container" className="container d-flex flex-stack">
-                    <div className="d-flex flex-column ">
+                    <div className="d-flex flex-column">
                         <div className="d-flex align-items-center">
                             <div
                                 className="d-flex align-item-center fw-semibold text-black py-2"
                             >
                                 {
                                     previousPath && (
-                                        <Link to={previousPath}
-                                            className='breadcrumb fs-5 text-white'
+                                        <div onClick={previousUrl}
+                                            className='breadcrumb fs-5 text-white cursor-pointer'
                                         >
-                                            {previousPath.replace("/", "") || "Home"}
-                                        </Link>
+                                            {previousPath
+                                                .replace("/url", "")
+                                                .replace("/", "")
+                                                .replace(/-/g, " ")
+                                                .charAt(0).toUpperCase() +
+                                                previousPath
+                                                    .replace("/url", "")
+                                                    .replace("/", "")
+                                                    .replace(/-/g, " ")
+                                                    .slice(1).toLowerCase()
+                                                || "Home"}
+                                        </div>
                                     )
                                 }
                                 {previousPath && <span className="fs-8 text-white pt-1 mx-1 align-bottom">
                                     <svg
                                         aria-hidden="true"
-                                        className=""
                                         width="16"
                                         height="16"
                                         viewBox="0 0 16 16"
-                                        fill="white" // Set the color to white
+                                        fill="white"
                                         xmlns="http://www.w3.org/2000/svg"
                                     >
                                         <path
@@ -343,18 +394,41 @@ const WebsiteUrlpage: React.FC = () => {
                                             d="M6.293 12.707a1 1 0 0 1 0-1.414L9.586 8 6.293 4.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
                                             shapeRendering="geometricPrecision"
                                         />
-                                    </svg> </span>}
+                                    </svg></span>}
+                                {
+                                    previousPath && (
+                                        <div
+                                            className='fs-5 disabled text-dark-light'
+                                        >
+                                            {previousPath.replace("/websites/url", "").replace("/", "") || ""}
+                                        </div>
+                                    )
+                                }
+                                {/* {
+                                    previousPath && <span className="fs-8 text-white pt-1 mx-1 align-bottom">
+                                        <svg
+                                            aria-hidden="true"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 16 16"
+                                            fill="white"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                        >
+                                            <path
+                                                fillRule="evenodd"
+                                                clipRule="evenodd"
+                                                d="M6.293 12.707a1 1 0 0 1 0-1.414L9.586 8 6.293 4.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                                                shapeRendering="geometricPrecision"
+                                            />
+                                        </svg></span>
+                                } */}
                                 <span className="fs-6 text-white align-center" style={{ paddingTop: '2px' }}>{url}</span>
                             </div>
                         </div>
                         <div className=''>
-                            <span className="my-1 fs-5 text-white fw-bold">{name}</span>
+                            <span className="my-1 fs-3 fw-bold text-white fw-bold">{name}</span>
                         </div>
                     </div>
-                    {/* <span className='fs-5 text-white'>{previousPath?.replace("/", "") || "Home"} </span> 
-                                <span className='fs-5 text-white'>Website Details : </span>
-                                <span className="text-black my-1 fs-5 text-white pb-2">{name}</span> 
-                                <h6 className="text-white">{url}</h6> */}
 
                     <div className="d-flex align-items-center py-1">
                         <button
@@ -602,7 +676,14 @@ const WebsiteUrlpage: React.FC = () => {
                                 filteredResults.map((item, index) => (
                                     <tr key={index}>
                                         {/* <td>{item.website_id}</td> */}
-                                        <td>{item.url_hash}</td>
+                                        <td>
+                                            <span
+                                                style={{ cursor: 'pointer', color: 'blue' }}
+                                                onClick={() => handleOpenModal(item.url)}
+                                            >
+                                                {item.url_hash}
+                                            </span>
+                                        </td>
                                         <td>
                                             <OverlayTrigger
                                                 placement="bottom"
@@ -672,7 +753,12 @@ const WebsiteUrlpage: React.FC = () => {
                             }
                         </tbody>
                     </Table>
-
+                    <ActivityModal
+                        show={showModal}
+                        onClose={handleCloseModal}
+                        timelineData={timelineData}
+                        loading={loading}
+                    />
                 </div>
                 {filteredResults.length > 0 && (
                     <Pagination

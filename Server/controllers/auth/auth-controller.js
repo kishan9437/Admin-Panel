@@ -92,7 +92,7 @@ const loginUser = async (req, res) => {
             },
             process.env.JWT_SECRET_KEY,
             {
-                expiresIn: '9h'  
+                expiresIn: '10h'  
             }
         );
 

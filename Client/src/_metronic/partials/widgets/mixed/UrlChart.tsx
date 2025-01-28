@@ -61,7 +61,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
             const response = await fetch(`http://localhost:5000/api/chart-data?startDate=${startDate}&endDate=${endDate}&id=${id}`);
 
             const data = await response.json();
-            console.log(data);
+            // console.log(data);
             const totals = data.response.reduce((acc: ChartItem, item: ChartItem) => {
                 acc.totalPages += item.totalPages || 0;
                 acc.renderedPages += item.renderedPages || 0;
@@ -98,7 +98,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
     };
 
     const activityHandle = () => {
-        navigate(`/activity`,{state: { id: getid, url, previousPath: `/websites`,name}})
+        navigate(`/websites/url/activity`, { state: { id: getid, url, previousPath: `/websites/url`, name } })
     }
 
     useEffect(() => {
@@ -158,7 +158,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                     <div className='col'>
                         <div className='bg-light-warning px-6 py-8 rounded-2'>
                             <KTIcon iconName='chart-simple' className='fs-3x text-warning d-block my-2' />
-                            <div className='text-warning fw-semibold fs-6 cursor-pointer'>
+                            <div className='text-warning fw-semibold fs-6 '>
                                 Total Urls :
                                 <span className='ms-2'>{totals.totalPages}</span>
                             </div>
@@ -167,7 +167,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                     <div className='col'>
                         <div className='bg-light-info px-6 py-8 rounded-2'>
                             <KTIcon iconName='sms' className='fs-3x text-info d-block my-2' />
-                            <div className='text-info fw-semibold fs-6 mt-2 cursor-pointer'>
+                            <div className='text-info fw-semibold fs-6 mt-2 '>
                                 Rendered :
                                 <span className='ms-2'>{totals.renderedPages}</span>
                             </div>
@@ -176,18 +176,17 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                     <div className='col'>
                         <div className='bg-light-primary px-6 py-8 rounded-2'>
                             <KTIcon iconName='sms' className='fs-3x text-primary d-block my-2' />
-                            <div className='text-primary fw-semibold fs-6 mt-2 cursor-pointer'>
+                            <div className='text-primary fw-semibold fs-6 mt-2 '>
                                 Not Rendered :
                                 <span className='ms-2'>{totals.notRenderedPages}</span>
                             </div>
                         </div>
                     </div>
                     <div className='col'>
-                        <div className='bg-light-success px-6 py-8 rounded-2'>
+                        <div className='bg-light-success px-6 py-8 rounded-2 cursor-pointer' onClick={activityHandle} >
                             <LuSquareActivity className='fs-3x text-success d-block my-2' />
                             <div
-                                className='text-success fw-semibold fs-6 mt-2 cursor-pointer'
-                                onClick={activityHandle}
+                                className='text-success fw-semibold fs-6 mt-2 '
                             >
                                 Activity :
                                 <span className='ps-3'>{totals.activityCount}</span>
@@ -197,7 +196,7 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                     <div className='col'>
                         <div className='bg-light-danger px-6 py-8 rounded-2'>
                             <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
-                            <div className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
+                            <div className='text-danger fw-semibold fs-6 mt-2'>
                                 400 :
                                 <span className='ms-2'>{totals.error400Count}</span>
                             </div>
@@ -206,13 +205,12 @@ const UrlChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
                     <div className='col'>
                         <div className='bg-light-danger px-6 py-8 rounded-2'>
                             <KTIcon iconName='abstract-26' className='fs-3x text-danger d-block my-2' />
-                            <div className='text-danger fw-semibold fs-6 mt-2 cursor-pointer'>
+                            <div className='text-danger fw-semibold fs-6 mt-2 '>
                                 500 :
                                 <span className='ps-3'>{totals.error500Count}</span>
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
             {/* <WebsiteUrlpage startDate={dateRange ? dateRange[0] : ''} endDate={dateRange ? dateRange[1] : ''}/> */}

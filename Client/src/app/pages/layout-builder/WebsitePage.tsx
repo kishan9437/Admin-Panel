@@ -575,7 +575,7 @@ const WebsitePage: React.FC = () => {
                       {/* <td>{index + 1 + (currentPage - 1) * itemsPerPage}</td> */}
                       <td>{item.name}</td>
                       {/* <td>{item.url}</td> */}
-                      <td><Link to='/websiteurl' state={{ id: item.id, name: item.name, url: item.url, previousPath: "/websites" }}>
+                      <td><Link to='/websites/url' state={{ id: item.id, name: item.name, url: item.url, previousPath: "/websites/url" }}>
                         {item.url}
                       </Link>
                       </td>

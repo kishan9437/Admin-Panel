@@ -1,6 +1,5 @@
 import { PageTitle } from '../../../_metronic/layout/core'
 import { Route, Routes } from 'react-router-dom';
-import { WebsiteUrlpage } from './WebsiteUrlpage';
 import { ActivityPage } from './ActivityPage';
 
 const ActivityPageWrapper = () => {

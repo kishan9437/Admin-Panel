@@ -153,15 +153,15 @@ const DashboardChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
   }
 
   const handleRender = (id: string) => {
-    navigate(`/websiteurl/${id}`)
+    navigate(`/websites/url/${id}`)
   }
 
   const handleNotRender = (id: string) => {
-    navigate(`/websiteurl/${id}`)
+    navigate(`/websites/url/${id}`)
   }
 
   const handleTotal = (id: string) => {
-    navigate(`/websiteurl/${id}`)
+    navigate(`/websites/url/${id}`)
   }
 
   return (
@@ -171,8 +171,8 @@ const DashboardChart: FC<Props> = ({ className, chartColor, chartHeight }) => {
           <div className="card-header border-0 py-5">
             <div className="row w-100 align-items-center  g-3 mt-0">
               <div className="col-12 col-md-6 mt-0 pe-0">
-                <Link to="/websiteurl"
-                  state={{ id: item.id, name: item.name, url: item.url, previousPath: "/dashboard" }}
+                <Link to="/websites/url"
+                  state={{ id: item.id, name: item.name, url: item.url, previousPath: "/websites/url" }}
                   className='breadcrumb-icon'
                 >
                   <div className="d-flex align-items-center flex-wrap me-0 py-2">

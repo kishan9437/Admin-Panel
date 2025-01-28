@@ -31,8 +31,8 @@ const PrivateRoutes = () => {
         <Route path='dashboard' element={<DashboardWrapper />} />
         <Route path='websites/*' element={<WebsitePageWrapper />} />
         <Route path='menu-test' element={<MenuTestPage />} />
-        <Route path='websiteurl/*' element={<WebsitesUrlPageWrapper/>}/>
-        <Route path='activity/*' element={<ActivityPageWrapper/>}/>
+        <Route path='websites/url/*' element={<WebsitesUrlPageWrapper/>}/>
+        <Route path='websites/url/activity/*' element={<ActivityPageWrapper/>}/>
         <Route path='crawlerror/*' element={<CrawlErrorPageWrapper/>}/>
         <Route path='500Error/*' element={<Error500WebsitePageWrapper/>}/>
         <Route path='400Error/*' element={<Error400WebsitePageWrapper/>}/>

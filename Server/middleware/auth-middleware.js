@@ -11,10 +11,6 @@ const authMiddleware = async (req, res, next) => {
             message: 'Unauthorised User!'
         });
     }
-
-    // if (api_token) {
-    //     api_token = api_token.split(' ')[1]; // Remove 'Bearer' from the token
-    // }
     
     if (api_token.startsWith('Bearer ')) {
         api_token = api_token.split(' ')[1]; // Remove 'Bearer' from the token

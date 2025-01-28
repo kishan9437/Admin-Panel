@@ -36,13 +36,12 @@ const ActivityPage: React.FC = () => {
     const [sortColumn, setSortColumn] = useState<string>('name');
     const [status, setStatus] = useState<string>("");
     const location = useLocation()
-    const { id, url, previousPath,name } = location.state || {};
+    const { id, url, previousPath, name } = location.state || {};
     const navigate = useNavigate()
     const { startDate, endDate } = useDateRange();
     const formattedStartDate = startDate ? new Date(startDate).toISOString() : undefined;
     const formattedEndDate = endDate ? new Date(endDate).toISOString() : undefined;
 
-    // console.log(previousPath)
     const getActivity = async (
         page: number = currentPage,
         order: 'asc' | 'desc' = 'asc',
@@ -90,7 +89,7 @@ const ActivityPage: React.FC = () => {
         const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
         setSortOrder(newOrder);
         setSortColumn(column)
-        getActivity(currentPage, newOrder, column, search, status, id);
+        getActivity(currentPage, newOrder, column, search, status, id, formattedStartDate, formattedEndDate);
     }
 
     const handlePageClick = (selectedItem: { selected: number }) => {
@@ -106,15 +105,22 @@ const ActivityPage: React.FC = () => {
     }
 
     const getStatusClass = (status: string): string => {
-        switch (status.toLowerCase()) {
-            case 'success':
-                return 'status-success';
-            case 'error':
+        switch (status) {
+            case 'Complete':
+                return 'status-complete';
+            case 'Error':
                 return 'status-error';
+            case 'Rendered':
+                return 'status-active';
+            case 'Inactive':
+                return 'status-inactive';
+            case 'Pending':
+                return 'status-pending';
             default:
                 return 'status-unknown';
         }
     };
+
 
     const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newItemsPerPage = parseInt(e.target.value);
@@ -122,7 +128,7 @@ const ActivityPage: React.FC = () => {
         setCurrentPage(1);
     };
 
-    const handleDeleteItem = async (id: string) => {
+    const handleDeleteItem = async (delete_id: string) => {
         try {
             Swal.fire({
                 title: 'Are you sure?',
@@ -135,7 +141,7 @@ const ActivityPage: React.FC = () => {
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     if (auth && auth.api_token) {
-                        const response = await fetch(`http://localhost:5000/api/activities/delete/${id}`, {
+                        const response = await fetch(`http://localhost:5000/api/activities/delete/${delete_id}`, {
                             method: 'DELETE',
                             headers: {
                                 Authorization: `Bearer ${auth.api_token}`
@@ -152,7 +158,7 @@ const ActivityPage: React.FC = () => {
                                 text: 'Data Deleting successfully',
                                 confirmButtonText: "OK"
                             }).then(() => {
-                                getActivity(page, sortOrder, sortColumn, search, status);
+                                getActivity(page, sortOrder, sortColumn, search, status, id, formattedStartDate, formattedEndDate);
                             })
                         }
                         else {
@@ -176,9 +182,14 @@ const ActivityPage: React.FC = () => {
         }
     }
 
-    const previousUrl=()=>{
-        navigate(`/websiteurl`,{state: { id,url, previousPath,name }})
+    const previousUrl = () => {
+        navigate(`/websites/url`, { state: { id, url, previousPath, name } })
     }
+
+    const websiteUrl = () => {
+        navigate(`/websites/url`, { state: { id, url, previousPath, name } })
+    }
+
     useEffect(() => {
         if (id) {
             getActivity(currentPage, sortOrder, sortColumn, search, status, id, formattedStartDate, formattedEndDate);
@@ -198,7 +209,17 @@ const ActivityPage: React.FC = () => {
                                         <div onClick={previousUrl}
                                             className='breadcrumb fs-5 text-white cursor-pointer'
                                         >
-                                            {previousPath.replace("/", "") || "Home"}
+                                            {previousPath
+                                                .replace("/url", "")
+                                                .replace("/", "")
+                                                .replace(/-/g, " ")
+                                                .charAt(0).toUpperCase() +
+                                                previousPath
+                                                    .replace("/url", "")
+                                                    .replace("/", "")
+                                                    .replace(/-/g, " ")
+                                                    .slice(1).toLowerCase()
+                                                || "Home"}
                                         </div>
                                     )
                                 }
@@ -208,7 +229,7 @@ const ActivityPage: React.FC = () => {
                                         width="16"
                                         height="16"
                                         viewBox="0 0 16 16"
-                                        fill="white" 
+                                        fill="white"
                                         xmlns="http://www.w3.org/2000/svg"
                                     >
                                         <path
@@ -218,11 +239,39 @@ const ActivityPage: React.FC = () => {
                                             shapeRendering="geometricPrecision"
                                         />
                                     </svg> </span>}
-                                <span className="fs-6 text-white align-center" style={{ paddingTop: '2px' }}>{url}</span>
+
+                                {
+                                    previousPath && (
+                                        <div onClick={websiteUrl}
+                                            className='breadcrumb fs-5 text-white cursor-pointer'
+                                        >
+                                            {previousPath.replace("/websites/url", "").replace("", "") || ""}
+                                        </div>
+                                    )
+                                }
+                                {/* {previousPath && <span className="fs-8 text-white pt-1 mx-1 align-bottom">
+                                    <svg
+                                        aria-hidden="true"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 16 16"
+                                        fill="white"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            clipRule="evenodd"
+                                            d="M6.293 12.707a1 1 0 0 1 0-1.414L9.586 8 6.293 4.707a1 1 0 0 1 1.414-1.414l4 4a1 1 0 0 1 0 1.414l-4 4a1 1 0 0 1-1.414 0Z"
+                                            shapeRendering="geometricPrecision"
+                                        />
+                                    </svg> </span>} */}
+                                <div className='fs-5 text-white '>
+                                    <span style={{ paddingTop: '2px' }}>{url}</span>
+                                </div>
                             </div>
                         </div>
-                        <div className=''>
-                            <span className="my-1 fs-5 text-white fw-bold">Activity</span>
+                        <div>
+                            <span className="fs-4 text-white fw-bold align-center" style={{ paddingTop: '2px' }}>Activity</span>
                         </div>
                     </div>
 
@@ -242,8 +291,9 @@ const ActivityPage: React.FC = () => {
                                 className="form-select form-select-sm mt-0 me-3 "
                             >
                                 <option value="">All</option>
-                                <option value="success">Success</option>
-                                <option value="fail">Fail</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Rendered">Rendered</option>
+                                <option value="Inactive">Inactive</option>
                             </select>
                             <select name="itemsPerPage" id="itemsPerPage" value={itemsPerPage} onChange={handleItemsPerPageChange} className='ps-1 rounded h-100'>
                                 <option value={5}>5</option>
@@ -263,7 +313,7 @@ const ActivityPage: React.FC = () => {
                         />
                     </div>
                     <div className='overflow-x-auto shadow-sm mb-4 rounded'>
-                        <Table striped bordered hover responsive="sm" className="table overflow-hidden rounded">
+                        <Table striped bordered hover responsive="sm" className="table rounded">
                             <thead>
                                 <tr>
                                     {/* <th onClick={() => handleSort('urlid')} className='cursor-pointer'>
@@ -320,7 +370,7 @@ const ActivityPage: React.FC = () => {
                                                     <td>{item.page_size}</td>
                                                     <td>{item.error}</td>
                                                     <td>
-                                                        <span className={`status-cell ${getStatusClass(item.status)}`}>
+                                                        <span className={`status-cell ${getStatusClass(item.status as 'Pending' | 'Complete' | 'Error' | 'Active' | 'Inactive' | 'Rendered')}`}>
                                                             {item.status}
                                                         </span>
                                                     </td>
@@ -340,7 +390,7 @@ const ActivityPage: React.FC = () => {
                                                                     <FontAwesomeIcon icon={faTrash} className='fs-3 text-danger' />
                                                                     <span className='fs-5 ps-2 fw-bold text-danger'>Delete</span>
                                                                 </Dropdown.Item>
-                                                                <Dropdown.Item onClick={() => getActivity(page, sortOrder, sortColumn, search, status, id)}>
+                                                                <Dropdown.Item onClick={() => getActivity(page, sortOrder, sortColumn, search, status, id, formattedStartDate, formattedEndDate)}>
                                                                     <FontAwesomeIcon icon={faSync} className='fs-3 text-info' />
                                                                     <span className='fs-5 ps-2 fw-bold text-info'>Refresh</span>
                                                                 </Dropdown.Item>
